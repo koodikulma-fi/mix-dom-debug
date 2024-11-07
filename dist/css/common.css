@@ -1,0 +1,372 @@
+
+/* - - Variables - - */
+
+:root {
+    
+    --opacity-faint: .85;
+    --opacity-dimmed: .6;
+    --opacity-disabled: .4;
+
+    --color-overlay-white-0: rgba(255, 255, 255, 0);
+    --color-overlay-white-s: rgba(255, 255, 255, .1);
+    --color-overlay-white-m: rgba(255, 255, 255, .3);
+    --color-overlay-white-l: rgba(255, 255, 255, .5);
+
+    --color-overlay-black-0: rgba(0, 0, 0, 0);
+    --color-overlay-black-s: rgba(0, 0, 0, .1);
+    --color-overlay-black-m: rgba(0, 0, 0, .3);
+    --color-overlay-black-l: rgba(0, 0, 0, .5);
+
+    --color-overlay-mid-0: rgba(127, 127, 127, 0);
+    --color-overlay-mid-xs: rgba(127, 127, 127, .05);
+    --color-overlay-mid-s: rgba(127, 127, 127, .1);
+    --color-overlay-mid-m: rgba(127, 127, 127, .3);
+    --color-overlay-mid-l: rgba(127, 127, 127, .7);
+    --color-overlay-mid-xl: rgba(127, 127, 127, .9);
+}
+
+:root .color-theme-dark {
+
+    --color-fill-main: #111;
+    --color-fill-main-strong: #000;
+    --color-fill-main-dim: #333;
+    --color-fill-main-emphasis: #49b;
+    --color-fill-main-active: #19c;
+    
+    --color-fill-alt: #ddd;
+    --color-fill-alt-strong: #fff;
+    --color-fill-alt-dim: #aaa;
+    --color-fill-alt-emphasis: #ace;
+    --color-fill-alt-active: #7cf;
+    
+    --color-stroke-main: #aaa;
+    --color-stroke-main-strong: #ddd;
+    --color-stroke-main-dim: #888;
+    --color-stroke-main-emphasis: #ace;
+    --color-stroke-main-active: #7cf;
+
+    --color-stroke-alt: #222;
+    --color-stroke-alt-strong: #000;
+    --color-stroke-alt-dim: #666;
+    --color-stroke-alt-emphasis: #357;
+    --color-stroke-alt-active: #49b;
+
+    --color-overlay-main-0: rgba(0, 0, 0, 0);
+    --color-overlay-main-xs: rgba(0, 0, 0, .05);
+    --color-overlay-main-s: rgba(0, 0, 0, .1);
+    --color-overlay-main-m: rgba(0, 0, 0, .3);
+    --color-overlay-main-l: rgba(0, 0, 0, .7);
+    --color-overlay-main-xl: rgba(0, 0, 0, .9);
+    --color-overlay-alt-0: rgba(255, 255, 255, 0);
+    --color-overlay-alt-xs: rgba(255, 255, 255, 0.05);
+    --color-overlay-alt-s: rgba(255, 255, 255, 0.1);
+    --color-overlay-alt-m: rgba(255, 255, 255, .3);
+    --color-overlay-alt-l: rgba(255, 255, 255, .5);
+    --color-overlay-alt-xl: rgba(255, 255, 255, .9);
+
+}
+
+:root .color-theme-light {
+
+    --color-fill-alt: #111;
+    --color-fill-alt-strong: #000;
+    --color-fill-alt-dim: #333;
+    --color-fill-alt-emphasis: #49b;
+    --color-fill-alt-active: #19c;
+    --color-fill-main: #e5e5e5;
+    --color-fill-main-strong: #fff;
+    --color-fill-main-dim: #aaa;
+    --color-fill-main-emphasis: #357;
+    --color-fill-main-active: #49b;
+
+    --color-stroke-main: #333;
+    --color-stroke-main-strong: #111;
+    --color-stroke-main-dim: #777;
+    --color-stroke-main-emphasis: #49b;
+    --color-stroke-main-active: #19c;
+    --color-stroke-alt: #ddd;
+    --color-stroke-alt-strong: #fff;
+    --color-stroke-alt-dim: #555;
+    --color-stroke-alt-emphasis: #ace;
+    --color-stroke-alt-active: #7cf;
+    
+    --color-overlay-main-0: rgba(255, 255, 255, 0);
+    --color-overlay-main-xs: rgba(255, 255, 255, 0.05);
+    --color-overlay-main-s: rgba(255, 255, 255, 0.1);
+    --color-overlay-main-m: rgba(255, 255, 255, .3);
+    --color-overlay-main-l: rgba(255, 255, 255, .7);
+    --color-overlay-main-xl: rgba(255, 255, 255, .9);
+    --color-overlay-alt-0: rgba(0, 0, 0, 0);
+    --color-overlay-alt-xs: rgba(0, 0, 0, 0.05);
+    --color-overlay-alt-s: rgba(0, 0, 0, 0.1);
+    --color-overlay-alt-m: rgba(0, 0, 0, .3);
+    --color-overlay-alt-l: rgba(0, 0, 0, .5);
+    --color-overlay-alt-xl: rgba(0, 0, 0, .9);
+
+
+/* <-- WE NEED SOME... LIKE.. THAT IT'S NOT TOTALLY FLIPPABLE..
+  .. CONSIDER BUTTONS... 
+   .. NO ... JSUT CHANGE THE IDAE.. LET'S DO MIRRORIG...
+ */
+
+}
+
+:root .layout-theme-default {
+
+    --layout-gap-xs: 1px;
+    --layout-gap-s: 2px;
+    --layout-gap-m: 4px;
+    --layout-gap-l: 8px;
+    --layout-gap-xl: 16px;
+
+    --layout-edge-s: 1px;
+    --layout-edge-m: 2px;
+    --layout-edge-l: 4px;
+    --layout-edge-xl: 8px;
+
+    --layout-radius-s: 2px;
+    --layout-radius-m: 5px;
+    --layout-radius-l: 10px;
+
+    --layout-icon-s: 10px;
+    --layout-icon-m: 16px;
+    --layout-icon-l: 24px;
+    --layout-icon-xl: 32px;
+
+    --layout-font-xs: 10px;
+    --layout-font-s: 13px;
+    --layout-font-m: 16px;
+    --layout-font-l: 24px;
+    --layout-font-xl: 48px;
+
+}
+
+:root .transition-theme-default {
+    --transition-s: .1s;
+    --transition-m: .2s;
+    --transition-l: .5s;
+    --transition-xl: 2s;
+}
+
+
+
+/**
+ * NOTES:
+ *
+ * - Make this whole thing EasyCSS "easy-css" package..?
+ *      * At least the basic commands like "flex-justify..."
+ *
+ */
+
+
+/* - - Flex declarations - - */
+
+/* Flex row and col */
+.flex-row { display: flex; flex-direction: row; }
+.flex-col { display: flex; flex-direction: column; }
+
+/* Flex align items */
+.flex-align-items-center { align-items: center; }
+.flex-align-items-start { align-items: start; }
+.flex-align-items-end { align-items: end; }
+.flex-align-items-stretch { align-items: stretch; }
+.flex-align-items-baseline { align-items: baseline; }
+
+/* Flex align content */
+.flex-align-content-center { align-content: center; }
+.flex-align-content-start { align-content: start; }
+.flex-align-content-end { align-content: end; }
+.flex-align-content-stretch { align-content: stretch; }
+.flex-align-content-baseline { align-content: baseline; }
+
+/* Flex align self */
+.flex-align-self-center { align-self: center; }
+.flex-align-self-start { align-self: start; }
+.flex-align-self-end { align-self: end; }
+.flex-align-self-stretch { align-self: stretch; }
+.flex-align-self-baseline { align-self: baseline; }
+
+/* Flex justify items */
+.flex-justify-items-center { justify-items: center; }
+.flex-justify-items-start { justify-items: start; }
+.flex-justify-items-end { justify-items: end; }
+.flex-justify-items-stretch { justify-items: stretch; }
+.flex-justify-items-baseline { justify-items: baseline; }
+
+/* Flex justify content */
+.flex-justify-content-center { justify-content: center; }
+.flex-justify-content-start { justify-content: start; }
+.flex-justify-content-end { justify-content: end; }
+.flex-justify-content-stretch { justify-content: stretch; }
+.flex-justify-content-baseline { justify-content: baseline; }
+
+/* Flex display */
+.flex { display: flex; }
+.flex-inline { display: inline-flex; }
+
+/* Flex common */
+.flex-grow { flex-grow: 1; }
+.flex-no-grow { flex-grow: 0; }
+.flex-shrink { flex-shrink: 1; }
+.flex-no-shrink { flex-shrink: 0; }
+
+/* - - Layout declarations - - */
+
+.layout-flex { display: flex; }
+.layout-block { display: block; }
+.layout-inline-block { display: inline-block; }
+
+.layout-relative { position: relative; }
+.layout-absolute { position: absolute; }
+
+.layout-z-low { z-index: 1; }
+.layout-z-mid { z-index: 10; }
+.layout-z-high { z-index: 100; }
+
+.layout-no-pointer { pointer-events: none; }
+.layout-auto-pointer { pointer-events: auto; }
+
+.layout-abs-fill { position: absolute; inset: 0; }
+.layout-fit-size, .layout-fit-width { width: 100%; }
+.layout-fit-size, .layout-fit-height { height: 100%; }
+.layout-fit-max, .layout-fit-max-width { max-width: 100%; }
+.layout-fit-max, .layout-fit-max-height { max-height: 100%; }
+
+.layout-scrollable { overflow: auto; }
+.layout-scrollable-x { overflow-x: auto; }
+.layout-scrollable-y { overflow-y: auto; }
+.layout-overflow-hidden { overflow: hidden; }
+
+.layout-border-box { box-sizing: border-box; }
+.layout-content-box { box-sizing: content-box; }
+
+.layout-gap-xs { gap: var(--layout-gap-xs); }
+.layout-gap-s { gap: var(--layout-gap-s); }
+.layout-gap-m { gap: var(--layout-gap-m); }
+.layout-gap-l { gap: var(--layout-gap-l); }
+
+.layout-margin-s { margin: var(--layout-gap-s); }
+.layout-margin-s-x { margin-left: var(--layout-gap-s); margin-right: var(--layout-gap-s); }
+.layout-margin-s-y { margin-top: var(--layout-gap-s); margin-bottom: var(--layout-gap-s); }
+.layout-margin-m { margin: var(--layout-gap-m); }
+.layout-margin-m-x { margin-left: var(--layout-gap-m); margin-right: var(--layout-gap-m); }
+.layout-margin-m-y { margin-top: var(--layout-gap-m); margin-bottom: var(--layout-gap-m); }
+.layout-margin-l { margin: var(--layout-gap-l); }
+.layout-margin-l-x { margin-left: var(--layout-gap-l); margin-right: var(--layout-gap-l); }
+.layout-margin-l-y { margin-top: var(--layout-gap-l); margin-bottom: var(--layout-gap-l); }
+
+.layout-padding-s { padding: var(--layout-gap-s); }
+.layout-padding-s-x { padding-left: var(--layout-gap-s); padding-right: var(--layout-gap-s); }
+.layout-padding-s-y { padding-top: var(--layout-gap-s); padding-bottom: var(--layout-gap-s); }
+.layout-padding-m { padding: var(--layout-gap-m); }
+.layout-padding-m-x { padding-left: var(--layout-gap-m); padding-right: var(--layout-gap-m); }
+.layout-padding-m-y { padding-top: var(--layout-gap-m); padding-bottom: var(--layout-gap-m); }
+.layout-padding-l { padding: var(--layout-gap-l); }
+.layout-padding-l-x { padding-left: var(--layout-gap-l); padding-right: var(--layout-gap-l); }
+.layout-padding-l-y { padding-top: var(--layout-gap-l); padding-bottom: var(--layout-gap-l); }
+
+.layout-margin-no-left { margin-left: 0; }
+.layout-margin-no-right { margin-right: 0; }
+.layout-margin-no-top { margin-top: 0; }
+.layout-margin-no-bottom { margin-bottom: 0; }
+.layout-margin-no-x { margin-left: 0; margin-right: 0; }
+.layout-margin-no-y { margin-top: 0; margin-bottom: 0; }
+
+.layout-padding-no-left { padding-left: 0; }
+.layout-padding-no-right { padding-right: 0; }
+.layout-padding-no-top { padding-top: 0; }
+.layout-padding-no-bottom { padding-bottom: 0; }
+.layout-padding-no-x { padding-left: 0; padding-right: 0; }
+.layout-padding-no-y { padding-top: 0; padding-bottom: 0; }
+
+
+/* - - Style declarations - - */
+
+.style-back-main { background-color: var(--color-fill-main); }
+.style-front-main { color: var(--color-stroke-main); }
+.style-opacity-0 { opacity: 0; }
+.style-opacity-1 { opacity: 1; }
+.style-disabled {
+    opacity: var(--opacity-disabled);
+}
+.style-dimmed {
+    opacity: var(--opacity-dimmed);
+}
+.style-greyed {
+    filter: grayscale(1);
+}
+
+.style-transition-opacity { transition: opacity var(--transition-m); }
+
+.style-hoverable,
+.style-stroke-hoverable,
+.style-fill-hoverable { transition: color var(--transition-m), background-color var(--transition-m), opacity var(--transition-m); }
+.style-hoverable:hover,
+.style-stroke-hoverable:hover { color: var(--color-stroke-main-emphasis); }
+.style-hoverable:hover,
+.style-fill-hoverable:hover { background-color: var(--color-overlay-alt-xs); }
+
+.style-shadow-overlay { box-shadow: 0 5px 40px 10px var(--color-overlay-black-l); }
+
+
+/* - - Text - - */
+
+.style-text-left {
+    text-align: left;
+}
+.style-text-center {
+    text-align: center;
+}
+.style-text-right {
+    text-align: right;
+}
+.style-text-justify {
+    text-align: justify;
+}
+.style-text-ellipsis {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.style-text-bold {
+    font-weight: bold;
+}
+.style-text-italic {
+    font-style: italic;
+}
+.style-text-underline {
+    text-decoration: underline;
+}
+.style-text-small {
+    font-size: 85%;
+    opacity: var(--opacity-faint);
+}
+
+/* - - Colors - - */
+
+.style-color-dim {
+    color: var(--color-stroke-main-dim);
+}
+.style-color-strong {
+    color: var(--color-stroke-main-strong);
+}
+.style-color-emphasis {
+    color: var(--color-stroke-main-emphasis);
+}
+.style-color-active {
+    color: var(--color-stroke-main-active);
+}
+
+
+/* - - Pointers - - */
+
+.style-cursor-default {
+    cursor: default;
+}
+.style-cursor-pointer {
+    cursor: pointer;
+}
+.style-cursor-text {
+    cursor: text;
+}

@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "target": "es2017",
+    "esModuleInterop": false,
+    "module": "es6",
+    "outDir": "./dist",
+    "moduleResolution": "node",
+    "noEmitOnError": true,
+    "declaration": true,
+    "declarationDir": "./dist/dts",
+    "strictNullChecks": true,
+    "jsx": "react",
+    "jsxFactory": "MixDOM.def",
+	 	"jsxFragmentFactory": "MixDOM.Fragment"
+  },
+  "include": ["./src/index.ts", "./src/index.cjs.ts", "./src/index.global.ts", "./src/**/*.tsx"],
+  "exclude": ["node_modules"]
+}

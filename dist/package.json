@@ -1,0 +1,53 @@
+{
+  "name": "mix-dom-debug",
+  "version": "1.0.0",
+  "description": "Debugging middleware for contexts from mix-dom",
+  "keywords": [
+    "MixDOM",
+    "mix-dom",
+    "mix-dom-debug",
+    "mix dom",
+    "mix dom debug",
+    "mix",
+    "dom",
+    "debug",
+    "tools",
+    "web",
+    "js",
+    "ts"
+  ],
+  "homepage": "https://github.com/koodikulma-fi/mix-dom-debug",
+  "author": "Mikael Saurén",
+  "license": "MIT",
+  "private": false,
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/koodikulma-fi/mix-dom-debug.git"
+  },
+  "module": "./mix-dom-debug.module.js",
+  "main": "./mix-dom-debug.js",
+  "types": "./mix-dom-debug.d.ts",
+  "exports": {
+    ".": {
+      "types": "./mix-dom-debug.d.ts",
+      "import": "./mix-dom-debug.module.js",
+      "require": "./mix-dom-debug.js",
+      "script": "./MixDOMDebug.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "tsc": "tsc -p tsconfig.json",
+    "build": "tsc && rollup -c rollup.config.js"
+  },
+  "dependencies": {
+    "mix-dom": "~4.2.1",
+    "data-memo": "~1.0.3",
+    "data-signals": "~1.2.0",
+    "dom-types": "~1.1.1"
+  }
+}

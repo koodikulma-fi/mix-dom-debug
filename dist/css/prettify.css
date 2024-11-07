@@ -1,0 +1,69 @@
+/*! Color themes for Google Code Prettify | MIT License | github.com/jmblog/color-themes-for-google-code-prettify */
+/*
+.prettyprint{background:#2d2d2d;font-family:Menlo,Bitstream Vera Sans Mono,DejaVu Sans Mono,Monaco,Consolas,monospace;border:0!important}.pln{color:#ccc}ol.linenums{margin-top:0;margin-bottom:0;color:#999}li.L0,li.L1,li.L2,li.L3,li.L4,li.L5,li.L6,li.L7,li.L8,li.L9{padding-left:1em;background-color:#2d2d2d;list-style-type:decimal}@media screen{.str{color:#9c9}.kwd{color:#c9c}.com{color:#999}.typ{color:#69c}.lit{color:#f99157}.pun{color:#ccc}.opn{color:#ccc}.clo{color:#ccc}.tag{color:#f2777a}.atn{color:#f99157}.atv{color:#6cc}.dec{color:#f99157}.var{color:#f2777a}.fun{color:#69c}}
+*/
+
+/*! Color themes for Google Code Prettify | MIT License | github.com/jmblog/color-themes-for-google-code-prettify */
+.color-theme-dark .prettyprint{background:#1d1f21;font-family:Menlo,Bitstream Vera Sans Mono,DejaVu Sans Mono,Monaco,Consolas,monospace;border:0!important}
+.color-theme-dark .pln{color:#c5c8c6}
+.color-theme-dark ol.linenums{margin-top:0;margin-bottom:0;color:#969896}
+.color-theme-dark li.L0,
+.color-theme-dark li.L1,
+.color-theme-dark li.L2,
+.color-theme-dark li.L3,
+.color-theme-dark li.L4,
+.color-theme-dark li.L5,
+.color-theme-dark li.L6,
+.color-theme-dark li.L7,
+.color-theme-dark li.L8,
+.color-theme-dark li.L9{padding-left:1em;background-color:#1d1f21;list-style-type:decimal}
+@media screen{
+    .color-theme-dark .str{color:#b5bd68}
+    .color-theme-dark .kwd{color:#b294bb}
+    .color-theme-dark .com{color:#969896}
+    .color-theme-dark .typ{color:#81a2be}
+    .color-theme-dark .lit{color:#de935f}
+    .color-theme-dark .pun{color:#c5c8c6}
+    .color-theme-dark .opn{color:#c5c8c6}
+    .color-theme-dark .clo{color:#c5c8c6}
+    .color-theme-dark .tag{color:#c66}
+    .color-theme-dark .atn{color:#de935f}
+    .color-theme-dark .atv{color:#8abeb7}
+    .color-theme-dark .dec{color:#de935f}
+    .color-theme-dark .var{color:#c66}
+    .color-theme-dark .fun{color:#81a2be}
+}
+
+/*! Color themes for Google Code Prettify | MIT License | github.com/jmblog/color-themes-for-google-code-prettify */
+.color-theme-light .prettyprint{background:#fff;font-family:Menlo,Bitstream Vera Sans Mono,DejaVu Sans Mono,Monaco,Consolas,monospace;border:0!important}
+.color-theme-light .pln{color:#4d4d4c}
+.color-theme-light ol.linenums{margin-top:0;margin-bottom:0;color:#8e908c}
+.color-theme-light li.L0,
+.color-theme-light li.L1,
+.color-theme-light li.L2,
+.color-theme-light li.L3,
+.color-theme-light li.L4,
+.color-theme-light li.L5,
+.color-theme-light li.L6,
+.color-theme-light li.L7,
+.color-theme-light li.L8,
+.color-theme-light li.L9{padding-left:1em;background-color:#fff;list-style-type:decimal}
+@media screen{
+    .color-theme-light .str{color:#718c00}
+    .color-theme-light .kwd{color:#8959a8}
+    .color-theme-light .com{color:#8e908c}
+    .color-theme-light .typ{color:#4271ae}
+    .color-theme-light .lit{color:#f5871f}
+    .color-theme-light .pun{color:#4d4d4c}
+    .color-theme-light .opn{color:#4d4d4c}
+    .color-theme-light .clo{color:#4d4d4c}
+    .color-theme-light .tag{color:#c82829}
+    .color-theme-light .atn{color:#f5871f}
+    .color-theme-light .atv{color:#3e999f}
+    .color-theme-light .dec{color:#f5871f}
+    .color-theme-light .var{color:#c82829}
+    .color-theme-light .fun{color:#4271ae}
+}
+
+.color-theme-light .prettyprint{background: #eaeaea; }
+/* .prettyprint .pln {color: currentColor;} */
