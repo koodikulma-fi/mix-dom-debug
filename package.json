@@ -1,6 +1,6 @@
 {
   "name": "mix-dom-debug",
-  "version": "1.0.0",
+  "version": "0.3.0",
   "description": "Debugging middleware for contexts from mix-dom",
   "keywords": [
     "MixDOM",

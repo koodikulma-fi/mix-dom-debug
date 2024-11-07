@@ -112,7 +112,7 @@ declare class MixDOMDebug {
 }
 
 /** Current app version. */
-declare const appVersion: "0.2.24";
+declare const appVersion: "0.3.0";
 
 declare const appIcons: Record<IconNames, MixDOMDefTarget | null>;
 
