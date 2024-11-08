@@ -34,10 +34,13 @@ export interface UIVirtualListInfo {
 		iEnd: number;
 	};
 	class: {
-		/** Note. Behavior defaults to "auto". However, if you're using the callback to get the elRow, you might want to use "instant" instead - otherwise it won't map correctly. */
-		scrollToIndex: (iRow: number, behavior?: "auto" | "instant" | "smooth", onlyIfNeeded?: boolean, callback?: (elRow: HTMLElement | null) => void) => void;
+		getRootElement: () => HTMLElement | null;
+		getListElement: () => HTMLElement | null;
+		getFirstVisibleItem: (includeWithinMargin?: boolean) => HTMLElement | null;
 		/** Get the virtual row element at the given iRow location. */
 		getElementAt: (iRow: number) => HTMLElement | null;
+		/** Note. Behavior defaults to "auto". However, if you're using the callback to get the elRow, you might want to use "instant" instead - otherwise it won't map correctly. */
+		scrollToIndex: (iRow: number, behavior?: "auto" | "instant" | "smooth", onlyIfNeeded?: boolean, callback?: (elRow: HTMLElement | null) => void) => void;
 	};
 }
 
@@ -90,8 +93,29 @@ export const UIVirtualList = MixDOM.component<UIVirtualListInfo>((component) => 
 			onNextRefresh = undefined;
 		}
 	};
+
+
+	// - Element getters - //
+
+	component.getRootElement = () => {
+		return containerRef.getElement();
+	};
+
+	component.getListElement = () => {
+		return containerRef.getElement()?.querySelector(".list-content") || null;
+	};
+
 	component.getElementAt = (iRow) => {
 		return containerRef.getElement()?.querySelectorAll(".list-content .ui-virtual-row")[iRow - component.getLastState().iStart] as HTMLElement | undefined || null;
+	};
+
+	component.getFirstVisibleItem = (includeWithinMargin) => {
+		const container = containerRef.getElement();
+		const elRows = container && container.querySelectorAll(".list-content .ui-virtual-row");
+		if (!elRows)
+			return null;
+		const scrollTop = container.scrollTop;
+		return includeWithinMargin ? elRows[0] as HTMLElement | undefined || null : ([...elRows] as HTMLElement[]).find(elRow => elRow.offsetTop >= scrollTop) || null;
 	};
 
 

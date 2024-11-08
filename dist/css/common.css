@@ -5,7 +5,7 @@
     
     --opacity-faint: .85;
     --opacity-dimmed: .6;
-    --opacity-disabled: .4;
+    --opacity-disabled: .45;
 
     --color-overlay-white-0: rgba(255, 255, 255, 0);
     --color-overlay-white-s: rgba(255, 255, 255, .1);
@@ -34,8 +34,6 @@
     --color-fill-main-active: #19c;
     
     --color-fill-alt: #ddd;
-    --color-fill-alt-strong: #fff;
-    --color-fill-alt-dim: #aaa;
     --color-fill-alt-emphasis: #ace;
     --color-fill-alt-active: #7cf;
     
@@ -68,23 +66,21 @@
 
 :root .color-theme-light {
 
-    --color-fill-alt: #111;
-    --color-fill-alt-strong: #000;
-    --color-fill-alt-dim: #333;
+    --color-fill-alt: #222;
     --color-fill-alt-emphasis: #49b;
     --color-fill-alt-active: #19c;
-    --color-fill-main: #e5e5e5;
+    --color-fill-main: #fbfbfb;
     --color-fill-main-strong: #fff;
     --color-fill-main-dim: #aaa;
     --color-fill-main-emphasis: #357;
     --color-fill-main-active: #49b;
 
-    --color-stroke-main: #333;
-    --color-stroke-main-strong: #111;
-    --color-stroke-main-dim: #777;
-    --color-stroke-main-emphasis: #49b;
-    --color-stroke-main-active: #19c;
-    --color-stroke-alt: #ddd;
+    --color-stroke-main: #444;
+    --color-stroke-main-strong: #222;
+    --color-stroke-main-dim: #666;
+    --color-stroke-main-emphasis: #29c;
+    --color-stroke-main-active: #17b;
+    --color-stroke-alt: #eee;
     --color-stroke-alt-strong: #fff;
     --color-stroke-alt-dim: #555;
     --color-stroke-alt-emphasis: #ace;
@@ -306,7 +302,7 @@
 .style-hoverable:hover,
 .style-fill-hoverable:hover { background-color: var(--color-overlay-alt-xs); }
 
-.style-shadow-overlay { box-shadow: 0 5px 40px 10px var(--color-overlay-black-l); }
+.style-shadow-overlay { box-shadow: 0 10px 35px 10px var(--color-overlay-black-m); }
 
 
 /* - - Text - - */

@@ -15,7 +15,7 @@ import { OnItemLink } from "./appTipHelpers";
 
 // - Tips - //
 
-export const renderComponentLinkTip = () => wrapTip(<div>Scroll and focus to the target.<br/> - Click with <b>Ctrl</b>/<b>Alt</b> to open details popup instead.<br /> - Click with <b>Shift</b> to log into console instead.</div>);
+export const renderComponentLinkTip = () => wrapTip(<div>Scroll and focus to the target.<br /> - If is matching and item is out of view, also selects it.<br/> - Click with <b>Ctrl</b>/<b>Alt</b> to open details popup instead.<br /> - Click with <b>Shift</b> to log into console instead.</div>);
 const renderUIAppTipSectionTip = () => wrapTip(<div>Toggle the section visibility.<br/> - Click with <b>Ctrl</b>/<b>Alt</b> to only show this section or all.</div>);
 const renderConsoleTip = () => wrapTip(<div>Click to log in console.</div>);
 
@@ -143,10 +143,10 @@ export const UIAppTipHeading: ComponentFunc<UIAppTipHeadingInfo> = (_props, comp
                     {props.history && props.history[1] ?
                         props.history[2] ? 
                             <>
-                                <UIAppButton iconName="back" look="transparent" size="large" className="flex-align-self-center" onPress={onHistoryPrev} disabled={props.iHistory === 0} />
-                                <UIAppButton iconName="forwards" look="transparent" size="large" className="flex-align-self-center" onPress={onHistoryNext} disabled={props.iHistory === props.history.length - 1} />
+                                <UIAppButton iconName="back" look="transparent" size="large" className="flex-align-self-center history-button" onPress={onHistoryPrev} disabled={props.iHistory === 0} />
+                                <UIAppButton iconName="forwards" look="transparent" size="large" className="flex-align-self-center history-button" onPress={onHistoryNext} disabled={props.iHistory === props.history.length - 1} />
                             </> :
-                        <UIAppButton iconName={props.iHistory === 1 ? "back" : "forwards"} look="transparent" size="large" className="flex-align-self-center" onPress={props.iHistory === 1 ? onHistoryPrev : onHistoryNext} /> :
+                        <UIAppButton iconName={props.iHistory === 1 ? "back" : "forwards"} look="transparent" size="large" className="flex-align-self-center history-button" onPress={props.iHistory === 1 ? onHistoryPrev : onHistoryNext} /> :
                     null}
                     <span class="flex-grow"/>
                     <span class={classNames("flex-row flex-align-items-baseline layout-gap-l", useOverflow && "style-text-ellipsis")}>
@@ -175,7 +175,7 @@ function Title(props: {
     return props.idToScroll ?
         <>
             {props.extraTitle !== undefined ? <>{props.title}{": "}</> : null}
-            <UIAppButton look="edge" className="style-text-ellipsis" onPress={props.onPress} renderTip={renderComponentLinkTip}>{props.extraTitle !== undefined ? props.extraTitle : props.title}</UIAppButton>
+            <UIAppButton look="edge" size="no" className="style-text-ellipsis" onPress={props.onPress} renderTip={renderComponentLinkTip}>{props.extraTitle !== undefined ? props.extraTitle : props.title}</UIAppButton>
             {props.afterTitle}
         </> :
         <>

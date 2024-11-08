@@ -25,6 +25,9 @@ export interface UITreeNodeTypeInfo {
         onSelectItem?: (e: MouseEvent | KeyboardEvent) => void;
         onSelectConcept?: (e: MouseEvent | KeyboardEvent) => void;
         onTipPresence?: (treeNode: DebugTreeItem["id"], type: "hoverable" | "popup", present: boolean) => void;
+        onToggleTip?: (e: MouseEvent | KeyboardEvent) => void;
+        /** In "tip" mode clicking the row toggles the tip. In "select" clicking the row does selection. In "select-tip", clicking does selection, but hovering the row provides tip. */
+        rowMode?: "select" | "select-tip" | "tip";
     };
 }
 export const UITreeNodeType: ComponentFunc<UITreeNodeTypeInfo> = (_props, comp) => {
@@ -36,8 +39,15 @@ export const UITreeNodeType: ComponentFunc<UITreeNodeTypeInfo> = (_props, comp) 
     const onRowClick = (e: MouseEvent | KeyboardEvent) => {
         // With prevention.
         if (!(e.type === "click" && (mouseDownInfo && ((e as MouseEvent).clientX !== mouseDownInfo[0] || (e as MouseEvent).clientY !== mouseDownInfo[1])))) {
-            comp.props.onSelectItem && comp.props.onSelectItem(e);
-            comp.props.onTipPresence && comp.props.onTipPresence(comp.props.item.treeNode, "hoverable", false);
+            const rowMode = comp.props.rowMode || "tip";
+            if (rowMode === "tip") {
+                comp.props.onToggleTip && comp.props.onToggleTip(e);
+            }
+            else { //if (rowMode === "select" || rowMode === "select-tip") {
+                comp.props.onSelectItem && comp.props.onSelectItem(e);
+                if (rowMode === "select-tip")
+                    comp.props.onTipPresence && comp.props.onTipPresence(comp.props.item.treeNode, "hoverable", false);
+            }
         }
         // Flag.
         mouseDownInfo = null;
@@ -46,10 +56,10 @@ export const UITreeNodeType: ComponentFunc<UITreeNodeTypeInfo> = (_props, comp) 
         mouseDownInfo = [e.clientX, e.clientY];
     };
     const onRowMouseEnter = (e: MouseEvent) => {
-        comp.props.onTipPresence && comp.props.onTipPresence(comp.props.item.treeNode, "hoverable", true);
+        comp.props.rowMode === "select-tip" && comp.props.onTipPresence && comp.props.onTipPresence(comp.props.item.treeNode, "hoverable", true);
     }
     const onRowMouseLeave = (e: MouseEvent) => {
-        comp.props.onTipPresence && comp.props.onTipPresence(comp.props.item.treeNode, "hoverable", false);
+        comp.props.rowMode === "select-tip" && comp.props.onTipPresence && comp.props.onTipPresence(comp.props.item.treeNode, "hoverable", false);
     }
 
     

@@ -31,7 +31,7 @@ export const UIAppTopBar: ComponentCtxFunc<UIAppTopBarInfo> = function DebugHost
         hideUnmatched: false,
         ignoreFilter: false,
         ignoreSelection: false,
-        ignoreTip: false,
+        rowMode: "select-tip",
         shouldSelect: true,
         noneCollapsed: true,
     };
@@ -52,7 +52,7 @@ export const UIAppTopBar: ComponentCtxFunc<UIAppTopBarInfo> = function DebugHost
     const toggleHideUnmatched = () => cApi.setInData("settings.hideUnmatched", !comp.state.hideUnmatched);
     const toggleIgnoreFilter = () => cApi.setInData("settings.ignoreFilter", !comp.state.ignoreFilter);
     const toggleIgnoreSelection = () => cApi.setInData("settings.ignoreSelection", !comp.state.ignoreSelection);
-    const toggleIgnoreTip = () => cApi.setInData("settings.ignoreTip", !comp.state.ignoreTip);
+    const toggleRowMode = (e: MouseEvent | KeyboardEvent) => cApi.setInData("settings.rowMode", comp.state.rowMode === "tip" ? "select-tip" : comp.state.rowMode === "select-tip" ? "select" : "tip");
     const toggleCollapseAll = () => cApi.sendSignal("settings.toggleCollapseAll");
     const toggleSelectMatched = (e: MouseEvent | KeyboardEvent) => cApi.sendSignal("settings.toggleSelectMatched", e.shiftKey);
     const toggleTheme = () => cApi.sendSignal("settings.toggleTheme");
@@ -66,7 +66,7 @@ export const UIAppTopBar: ComponentCtxFunc<UIAppTopBarInfo> = function DebugHost
     const renderHideUnmatchedTip = () => wrapTip(<div>Whether to always show all items, or only matched by filter and/or selection.</div>);
     const renderIgnoreFilterTip = () => wrapTip(<div>Disable the effect of the filter temporarily.</div>);
     const renderIgnoreSelectionTip = () => wrapTip(<div>Disable the effect of the selection temporarily.</div>);
-    const renderIgnoreTipTip = () => wrapTip(<div>Disable the automatic popup display.</div>);
+    const renderRowModeTip = () => wrapTip(<div>Change the row mode:<br/> 1. Clicking toggles selection and hovering toggles tip display.<br/> 2. Clicking the row only toggles selection.<br /> 3. Clicking the row toggles the tip display.</div>);
     const renderFilterAutoTip = () => wrapTip(<div>Whether auto-expands collapsed parents when filtering.</div>);
     const renderFilterParentsTip = () => wrapTip(<div>Whether shows parents with matching children.</div>);
     const renderFilterChildrenTip = () => wrapTip(<div>Whether shows children of matching parents.</div>);
@@ -102,7 +102,7 @@ export const UIAppTopBar: ComponentCtxFunc<UIAppTopBarInfo> = function DebugHost
             <UIAppButton _key="eye" look="edge" escToCloseTip={true} iconName={state.hideUnmatched ? "show-matched" : "show-all"} onPress={toggleHideUnmatched} renderTip={renderHideUnmatchedTip} />
             <UIAppButton _key="ignoreFilter" look="transparent" escToCloseTip={true} iconName="no-filter" toggled={state.ignoreFilter} onPress={toggleIgnoreFilter} renderTip={renderIgnoreFilterTip} />
             <UIAppButton _key="ignoreSelection" look="transparent" escToCloseTip={true} iconName="no-selection" toggled={state.ignoreSelection} onPress={toggleIgnoreSelection} renderTip={renderIgnoreSelectionTip} />
-            <UIAppButton _key="ignoreTip" look="transparent" escToCloseTip={true} iconName="no-info" toggled={state.ignoreTip} onPress={toggleIgnoreTip} renderTip={renderIgnoreTipTip} />
+            <UIAppButton _key="ignoreTip" look="transparent" escToCloseTip={true} iconName={state.rowMode === "select" ? "click-select" : state.rowMode === "select-tip" ? "click-select-tip" : "click-tip"} onPress={toggleRowMode} renderTip={renderRowModeTip} />
             <span _key="mix-dom-debug"><b>mix-dom-debug</b> <span class="style-text-small">(v{appVersion})</span></span>
             <UIAppButton _key="theme" look="transparent" escToCloseTip={true} iconName="theme" onPress={toggleTheme} renderTip={renderThemesTip}/>
             <UIAppButton _key="console" look="transparent" escToCloseTip={true} iconName="console" onPress={logHost} renderTip={renderConsoleTip} />

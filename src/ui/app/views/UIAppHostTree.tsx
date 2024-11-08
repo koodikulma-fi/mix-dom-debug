@@ -124,7 +124,8 @@ export interface UIAppHostTreeInfo {
         showChildren: boolean;
         ignoreSelection: boolean;
         ignoreFilter: boolean;
-        ignoreTip: boolean;
+        /** In "tip" mode clicking the row toggles the tip. In "select" clicking the row does selection. In "select-tip", clicking does selection, but hovering the row provides tip. */
+        rowMode: "select" | "select-tip" | "tip";
         hideUnmatched: boolean;
         reselectRefreshId: {};
     };
@@ -155,7 +156,7 @@ export const UIAppHostTree: ComponentCtxFunc<UIAppHostTreeInfo> = function Debug
         showChildren: false,
         ignoreSelection: false,
         ignoreFilter: false,
-        ignoreTip: false,
+        rowMode: "select-tip",
         hideUnmatched: false,
         reselectRefreshId: {}
     };
@@ -182,7 +183,7 @@ export const UIAppHostTree: ComponentCtxFunc<UIAppHostTreeInfo> = function Debug
                 hideUnmatched: setup.hideUnmatched,
                 ignoreFilter: setup.ignoreFilter,
                 ignoreSelection: setup.ignoreSelection,
-                ignoreTip: setup.ignoreTip,
+                rowMode: setup.rowMode,
             });
         },
         [comp.state.host, comp.state.debugSettings, comp.state.debugLive]
@@ -194,10 +195,11 @@ export const UIAppHostTree: ComponentCtxFunc<UIAppHostTreeInfo> = function Debug
     const refVirtualList = new MixDOM.Ref<ComponentTypeWith<UIVirtualListInfo>>;
     const rowHeight = 30;
     type CommonProps = Partial<{ debugInfo?: HostDebugSettings | null; iUpdate?: number; }> & Omit<UIAppTreeItemInfo["props"], "item">;
-    const getCommonProps = createMemo((debugInfo: HostDebugSettings | null, iUpdate?: number): CommonProps => ({
+    const getCommonProps = createMemo((debugInfo: HostDebugSettings | null, iUpdate?: number, rowMode?: UIAppHostTreeInfo["state"]["rowMode"]): CommonProps => ({
         debugInfo,
         animate: true,
         iUpdate,
+        rowMode,
         toggleCollapsed,
         toggleSelected,
         toggleConcept,
@@ -429,16 +431,39 @@ export const UIAppHostTree: ComponentCtxFunc<UIAppHostTreeInfo> = function Debug
     const onItemLink = (id: Item["id"] | null, mode?: "focus" | "details" | "details-break" | "log") => {
         const item = id ? allItems.find(item => item.id === id) : null;
         switch(mode || "focus") {
-            case "focus":
-                item && scrollToItem(item);
+            case "focus": {
+                // Nothing to do.
+                if (!item)
+                    break;
+                // See if is visible.
+                const isVisible = filterer(item);
+                // Case 1, is visible.
+                if (isVisible)
+                    scrollToItem(item);
+                // Case 2, is not visible, but is not in matching mode - just scroll (with uncollapsing parents).
+                else if (!matchedItems || !comp.state.hideUnmatched)
+                    scrollToItem(item);
+                // Case 3, is in matching mode, and is targeting an unmatched. Double make sure is not selected (implicitly is not).
+                else if (!comp.state.ignoreSelection && !comp.state.selected.includes(item.treeNode)) {
+                    comp.listenTo("didUpdate", () => {
+                        item && scrollToItem(item);
+                    }, null, SignalListenerFlags.OneShot);
+                    setSelected([...comp.state.selected, item.treeNode]);
+                }
+                // Otherwise, cannot really do anything (nicely).
                 break;
+            }
             case "details":
                 setTipBy(item ? item.id : null);
                 break;
-            case "details-break":
+            case "details-break": {
+                const itemWas = item || comp.state.tipItem;
+                const hadHover = (tipPresence & 1) !== 0;
                 setTipBy(item ? item.id : null);
-                setSkipHover();
+                setSkipHover(!hadHover);
+                itemWas && refocusToGrid(itemWas.treeNode);
                 break;
+            }
             case "log":
                 item && consoleLog(comp.state.debugSettings, "MixDOMDebug: Log item", item.treeNode);
                 break;
@@ -569,9 +594,22 @@ export const UIAppHostTree: ComponentCtxFunc<UIAppHostTreeInfo> = function Debug
      * - The very next is meant for when clicks the close button. (It might take longer than 300ms.)
      * - While the 300ms is meant for when mouse leaves the popup, especially downwards, as might actually hover over 2 items quickly.
      */
-    const setSkipHover = () => (skipNextHover = true) && comp.setTimer("skip-hover", () => {}, 300); // Let's skip for 300ms.
+    const setSkipHover = (skipNext: boolean = true) => (skipNext ? skipNextHover = true : true) && comp.setTimer("skip-hover", () => {}, 300); // Let's skip for 300ms.
+    const refocusToGrid = (treeNode?: Item["id"] | null, forceRefocus?: boolean) => {
+        // Skip.
+        const virtualList = refVirtualList.getComponent();
+        if (!virtualList || !forceRefocus && virtualList.getRootElement()?.contains(document.activeElement))
+            return;
+        // Try specific.
+        let el: HTMLElement | null | undefined = treeNode && getRowElement(treeNode);
+        if (!el)
+            el = virtualList.getFirstVisibleItem();
+        // Focus.
+        el && el.querySelector("button")?.focus();
+    };
     /** To account for history vs. current again. */
     const setTipBy = (treeNode: Item["id"] | null, useRefreshId: boolean = true) => {
+        console.log(" setTipBy" , treeNode);
         if (!treeNode)
             tipPresence &= ~2;
         comp.clearTimers("tip-hover", "skip-hover");
@@ -583,16 +621,17 @@ export const UIAppHostTree: ComponentCtxFunc<UIAppHostTreeInfo> = function Debug
     };
     const onTipPresence = (treeNode: Item["id"], type: "hoverable" | "popup", present: boolean) => {
         // Skip.
-        if (comp.state.ignoreTip)
+        if (comp.state.rowMode !== "select-tip")
             return;
         // Modify presence.
+        console.log(" onTipPresence", type, present);
         const flag = type === "popup" ? 2 : 1;
         tipPresence = present ? tipPresence | flag : tipPresence &~ flag;
         // Toggle on.
         if (present) {
             // Trigger hover timer.
             if (type === "hoverable") {
-                !skipNextHover && !comp.hasTimer("skip-hover") && (tipPresence & 2) === 0 && comp.setTimer("tip-hover", () => setTipBy(treeNode), 500); // Same delay as in MixHoverSignal.
+                !skipNextHover && !comp.hasTimer("skip-hover") && (tipPresence & 2) === 0 && comp.setTimer("tip-hover", () => setTipBy(treeNode), 600); // Same delay as in MixHoverSignal.
                 skipNextHover = false;
             }
             // Or accept current.
@@ -601,11 +640,19 @@ export const UIAppHostTree: ComponentCtxFunc<UIAppHostTreeInfo> = function Debug
         }
         // Toggle off.
         else {
+            const itemWas = comp.state.tipItem;
             // Hide.
-            if (!tipPresence && comp.state.tipItem) {
+            if (!tipPresence && itemWas) {
                 setTipBy(null);
-                if (type === "popup")
+                if (type === "popup") {
+                    // setTipBy(null);
                     setSkipHover();
+                    // Let's refocus, if started to close and the focus was inside the popup.
+                    refocusToGrid(itemWas.treeNode);
+                }
+                // // After a tiny timeout.
+                // else
+                //     comp.setTimer("tip-hover", () => !tipPresence && setTipBy(null), 25);
             }
             // Clear hover start timer.
             else
@@ -613,9 +660,10 @@ export const UIAppHostTree: ComponentCtxFunc<UIAppHostTreeInfo> = function Debug
         }
     };
     const getTipSourceElement = (treeNode?: Item["id"]): HTMLElement | null => {
-        if (treeNode)
-            return refVirtualList.getComponent()?.getElementAt(allItems.filter(filterer).findIndex(item => item.id === treeNode)) || null;
-        return comp.state.tipItem ? refVirtualList.getComponent()?.getElementAt(allItems.filter(filterer).indexOf(comp.state.tipItem)) || null : null;
+        return !treeNode && !comp.state.tipItem ? null : getRowElement(treeNode ? treeNode : comp.state.tipItem!.treeNode);
+    };
+    const getRowElement = (treeNode: Item["id"]): HTMLElement | null => {
+        return refVirtualList.getComponent()?.getElementAt(allItems.filter(filterer).findIndex(item => item.id === treeNode)) || null;
     };
 
 
@@ -624,8 +672,8 @@ export const UIAppHostTree: ComponentCtxFunc<UIAppHostTreeInfo> = function Debug
     const Wired = MixDOM.wired<{ item: Item; }, CommonProps>(
         // Builder.
         () => {
-            // return getCommonProps(comp.state.debugSettings, comp.state.debugLive?.iUpdate); // For v4.2.1
-            return { ...getCommonProps(comp.state.debugSettings, comp.state.debugLive?.iUpdate) }; // For v4.2.0
+            // return getCommonProps(comp.state.debugSettings, comp.state.debugLive?.iUpdate, comp.state.rowMode); // For v4.2.1
+            return { ...getCommonProps(comp.state.debugSettings, comp.state.debugLive?.iUpdate, comp.state.rowMode) }; // For v4.2.0
         },
         // Mixer.
         // null,
@@ -690,6 +738,7 @@ export const UIAppHostTree: ComponentCtxFunc<UIAppHostTreeInfo> = function Debug
                 debugInfo={state.debugSettings}
                 reselectRefreshId={state.reselectRefreshId}
                 onTipPresence={onTipPresence}
+                rowMode={state.rowMode}
             />
         </div>
     };

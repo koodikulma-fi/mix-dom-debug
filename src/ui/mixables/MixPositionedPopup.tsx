@@ -113,7 +113,7 @@ export const MixPositionedPopup: ComponentFunc<MixPositionedPopupInfo> = (_initP
                     container={comp.popupContainer}
                     sourceElement={props.popupSourceEl}
                     contentClassName={classNames("style-shadow-overlay", (popupOpened === "out" || popupOpened === "start") ? "style-opacity-0" : "style-opacity-1")}
-                    contentStyle={fadeTime ? `transition: opacity ${fadeTime}ms ease-in-out` : undefined}
+                    contentStyle={fadeTime ? `transition: opacity ${fadeTime}ms ${popupOpened === "out" ? "ease-in" : "ease-in-out"}` : undefined}
                     {...passProps}
                 >
                     {content}

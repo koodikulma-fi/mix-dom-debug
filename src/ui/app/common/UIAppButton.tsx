@@ -19,7 +19,7 @@ export type UIAppButtonProps = Omit<UIAppTipInfo<"button">["props"], "tag"> & {
     toggled?: boolean;
     invisible?: boolean;
     look?: "filled" | "edge" | "transparent";
-    size?: "narrow" | "large";
+    size?: "no" | "narrow" | "large";
     /** Use this for onClick with modifier key support. */
     onPress?: (e: MouseEvent | KeyboardEvent) => void;
 };
@@ -56,7 +56,7 @@ export const UIAppButton: ComponentFunc<{ props: UIAppButtonProps; }> = (_props,
                     className
                 )}
             >
-            {iconName !== undefined ? <UIAppIcon iconName={iconName} className={iconClassName} iconSize={size !== "narrow" ? size : undefined} /> : null}{MixDOM.Content}
+            {iconName !== undefined ? <UIAppIcon iconName={iconName} className={iconClassName} iconSize={size !== "narrow" && size !== "no" ? size : undefined} /> : null}{MixDOM.Content}
         </UIAppTip>;
     }
 };

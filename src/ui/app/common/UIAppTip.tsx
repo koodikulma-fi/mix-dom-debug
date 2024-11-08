@@ -4,7 +4,7 @@
 // Libraries.
 import { MixDOM, MixDOMRenderOutput, Component, ComponentProps, ComponentWith, ComponentFuncReturn, MixDOMProps, Ref } from "mix-dom";
 import { HTMLAttributes } from "dom-types/camelCase";
-import { classNames, DOMElement, HTMLTags } from "dom-types";
+import { classNames, DOMElement, DOMTags } from "dom-types";
 // Mixables.
 import { MixHoverSignal, MixHoverSignalInfo } from "../../mixables/MixHoverSignal";
 import { MixPositionedPopup, MixPositionedPopupInfo } from "../../mixables/MixPositionedPopup";
@@ -19,7 +19,7 @@ export const UIAppTipRemote = MixDOM.remote();
 
 // - Mixed component - //
 
-interface UIAppTipOwnProps<Tag extends HTMLTags = "div"> {
+interface UIAppTipOwnProps<Tag extends DOMTags = "div"> {
     tag: Tag;
     rootRef?: Ref<DOMElement<Tag>> | null;
     escToCloseTip?: boolean;
@@ -32,13 +32,13 @@ interface UIAppTipOwnProps<Tag extends HTMLTags = "div"> {
     className?: string; // Assuming css classes handle button styling.
     refreshId?: any;
 }
-interface UIAppTipOwnInfo<Tag extends HTMLTags = "div"> {
+interface UIAppTipOwnInfo<Tag extends DOMTags = "div"> {
     props: UIAppTipOwnProps<Tag> & MixDOMProps<Tag, "camelCase">;
     class: {
         setHovered: (isHovered: boolean) => void;
     };
 }
-export type UIAppTipInfo<Tag extends HTMLTags = "div"> = MixOnEscapeInfo & MixHoverSignalInfo & MixPositionedPopupInfo & UIAppTipOwnInfo<Tag>;
+export type UIAppTipInfo<Tag extends DOMTags = "div"> = MixOnEscapeInfo & MixHoverSignalInfo & MixPositionedPopupInfo & UIAppTipOwnInfo<Tag>;
 /** Simple button with hovertip. */
 // Create the hover tip button - with access to the remote.
 export const UIAppTip = MixDOM.mixFuncsWith(MixHoverSignal, MixOnEscape, MixPositionedPopup, (_, comp) => {
@@ -87,4 +87,4 @@ export const UIAppTip = MixDOM.mixFuncsWith(MixHoverSignal, MixOnEscape, MixPosi
         comp.refreshPopupId = renderTip; // Use the renderTip as refreshId for popup tip.
         return MixDOM.def(tag, { _ref: rootRef ? [rootRef, comp.hoverRef] as Ref<Node>[] : comp.hoverRef, class: classNames(_class, className), onClick, ...passProps }, MixDOM.Content, MixDOM.def(comp.WithTooltip) );
     };
-}, null as any as UIAppTipOwnInfo) as any as <Tag extends HTMLTags = "div">(initProps: ComponentProps<UIAppTipInfo<Tag>> & Omit<HTMLAttributes<Tag>, "class">, comp: ComponentWith<UIAppTipInfo<Tag>>) => ComponentFuncReturn<UIAppTipInfo<Tag>>;
+}, null as any as UIAppTipOwnInfo) as any as <Tag extends DOMTags = "div">(initProps: ComponentProps<UIAppTipInfo<Tag>> & Omit<HTMLAttributes<Tag>, "class">, comp: ComponentWith<UIAppTipInfo<Tag>>) => ComponentFuncReturn<UIAppTipInfo<Tag>>;

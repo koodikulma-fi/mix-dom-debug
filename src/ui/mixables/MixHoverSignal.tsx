@@ -15,7 +15,7 @@ export interface MixHoverSignalInfo {
         hoverRef: Ref<HTMLElement>;
         /** Only used on mouse enter: if disabled, won't trigger timer -> set state. */
         hoverDisabled?: boolean | "one-time";
-        /** Timeout before the tip is triggered. Defaults to 500. */
+        /** Timeout before the tip is triggered. Defaults to 600. */
         hoverTimeout: number;
     };
     timers: "onMouseEnter" | string & {};

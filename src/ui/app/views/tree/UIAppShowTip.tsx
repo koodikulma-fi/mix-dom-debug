@@ -27,6 +27,8 @@ export interface UIAppShowTipInfo {
         debugInfo?: HostDebugSettings | null;
         popupContainerProps?: Omit<UIPopupContainerProps, "container" | "sourceElement">;
         reselectRefreshId?: any;
+        /** In "tip" mode clicking the row toggles the tip. In "select" clicking the row does selection. In "select-tip", clicking does selection, but hovering the row provides tip. */
+        rowMode?: "select" | "select-tip" | "tip";
     };
     state: {
         item: DebugTreeItem | null;
@@ -34,19 +36,13 @@ export interface UIAppShowTipInfo {
 }
 export const UIAppShowTip = mixFuncsWith(MixPositionedPopup, (_props, comp) => {
 
-    // THE NEW PLAN:
-    // - DO THIS IN HOST TREE.
-    // - IN HERE, WE ONLY TRGIGER INSTANT "ENTER" & "LEAVE".
-    // - AND IN HOST TREE, WE SET UP A TIMER, WHICH CAN (OFTEN) BE CANCELLED. (NO STATE CHANGE.)
-    // - 
-
     comp.state = {
         ...comp.state,
         item: comp.props.item,
-        elementMargin: 5,
+        elementMargin: 15,
         containerMargin: 10,
         popupFadeIn: 100,
-        popupFadeOut: 300,
+        popupFadeOut: 270,
     };
     const onHistoryItem = (item: DebugTreeItem) => {
         comp.setState({ popupSourceElement: comp.props.getSourceElement ? comp.props.getSourceElement(item.id) : null })
@@ -64,6 +60,7 @@ export const UIAppShowTip = mixFuncsWith(MixPositionedPopup, (_props, comp) => {
             onHistoryItem={onHistoryItem}
             onTipPresence={comp.props.onTipPresence}
             escToCloseTip={true}
+            rowMode={comp.props.rowMode}
         /> : null;
     
     comp.listenTo("preUpdate", (prevProps, prevState, willUpdate) => {
@@ -76,6 +73,7 @@ export const UIAppShowTip = mixFuncsWith(MixPositionedPopup, (_props, comp) => {
             prevProps.debugInfo !== props.debugInfo ||
             prevProps.reselectRefreshId !== props.reselectRefreshId ||
             prevProps.onTipPresence !== props.onTipPresence ||
+            prevProps.rowMode !== props.rowMode ||
             prevState && prevState.popupSourceElement !== comp.state.popupSourceElement
         ))
             comp.refreshPopupId = {};
@@ -88,7 +86,7 @@ export const UIAppShowTip = mixFuncsWith(MixPositionedPopup, (_props, comp) => {
                 comp.showPopup();
             }
             // If has no item, start hiding the popup.
-            else
+            else if (comp.state.popupOpened && comp.state.popupOpened !== "out")
                 comp.hidePopup();
         }
         // Popup has finished hiding.

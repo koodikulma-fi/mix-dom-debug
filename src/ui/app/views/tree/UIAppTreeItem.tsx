@@ -29,6 +29,8 @@ export interface UIAppTreeItemInfo {
         toggleConcept?: (concept: MixDOMTreeNode["type"], reset?: boolean) => void;
         onToggleTip?: (id: DebugTreeItem["id"]) => void;
         onTipPresence?: (treeNode: DebugTreeItem["id"], type: "hoverable" | "popup", present: boolean) => void;
+        /** In "tip" mode clicking the row toggles the tip. In "select" clicking the row does selection. In "select-tip", clicking does selection, but hovering the row provides tip. */
+        rowMode?: "select" | "select-tip" | "tip";
     };
     state: {
         animFinished?: true;
@@ -93,7 +95,7 @@ export function UIAppTreeItem(_initProps: ComponentProps<UIAppTreeItemInfo>, com
             <div class={classNames("level-indicator", props.selected ? "style-dimmed" : "style-disabled", props.selected && colorClass)} style={`position: absolute; left: 0; height: 100%; width: ${leftOffset}px; background: linear-gradient(-160deg, currentColor, ${props.selected ? "35%" : "15%"}, transparent, 100%, transparent);`} />
             <UIAppButton onPress={onSelect} iconName={props.selected ? "item-selected" : "item-deselected"} className={"flex-align-self-center"} iconClassName={classNames(!props.selected && "style-dimmed", colorClass)} look="transparent" renderTip={renderSelectTip} />
             <UIAppButton onPress={onToggle} invisible={props.collapsed === null} disabled={props.collapsed === null || undefined} iconName={props.collapsed === null ? "" : props.collapsed ? "collapsed" : "expanded"} look="transparent" renderTip={renderToggleTip} />
-            <UITreeNodeType item={props.item} iUpdate={props.iUpdate} displayClassName={props.dimmed ? "style-greyed" : undefined} conceptClassName={props.dimmed ? "style-greyed" : undefined} onSelectItem={onSelect} onSelectConcept={onSelectConcept} onTipPresence={props.onTipPresence} />
+            <UITreeNodeType item={props.item} iUpdate={props.iUpdate} displayClassName={props.dimmed ? "style-greyed" : undefined} conceptClassName={props.dimmed ? "style-greyed" : undefined} rowMode={props.rowMode} onSelectItem={onSelect} onSelectConcept={onSelectConcept} onTipPresence={props.onTipPresence} onToggleTip={onToggleTip} />
             <UIAppButton onPress={onToggleTip} iconName="info" look="transparent" renderTip={renderTipTip} />
             <UIAppButton onPress={onViewInConsole} iconName="console" look="transparent" renderTip={renderConsoleTip} />
         </div>;

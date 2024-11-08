@@ -59,7 +59,7 @@ export class MixDOMDebug {
                 hideUnmatched: false,
                 ignoreSelection: false,
                 ignoreFilter: false,
-                ignoreTip: false,
+                rowMode: "select-tip",
                 shouldSelect: true,
                 noneCollapsed: true,
                 hiddenTipSections: []
@@ -239,7 +239,7 @@ export class MixDOMDebug {
         const cssUrl = baseUrl + "css/";
 
         w.document.documentElement.setAttribute("lang", "en");
-        w.document.head.innerHTML = `<title>MixDOMDebug | Debugger for MixDOM library</title><meta name='description' content="MixDOMDebug provides a debugging view for MixDOM library hosts and contexts" /><meta name='keywords' content='mix-dom-debug, mixdomdebug, mixdomjs, mix-dom-js, mix, dom, debug, service' /><meta http-equiv='content-type' content='text/html' charset='utf-8' /><meta name='viewport' content='width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no' /><meta name="google-site-verification" content="vuXdGK5mafeCIvjzenv2uDtR4S-nxq8crCSAW_Vgyg0" /><link href='https://fonts.googleapis.com/css?family=Abel' rel='stylesheet' /><link href="${cssUrl}prettify.css?v=${cssVersion}" rel='stylesheet' type="text/css" /><link href="${cssUrl}common.css?v=${cssVersion}" rel='stylesheet' type="text/css" /><link href="${cssUrl}app.css?v=${cssVersion}" rel="stylesheet" type="text/css" />`;
+        w.document.head.innerHTML = `<title>MixDOMDebug | Debugger for MixDOM library</title><meta name='description' content="MixDOMDebug provides a debugging view for MixDOM library hosts and contexts" /><meta name='keywords' content='mix-dom-debug, mixdomdebug, mixdomjs, mix-dom-js, mix, dom, debug, service' /><meta http-equiv='content-type' content='text/html' charset='utf-8' /><meta name='viewport' content='width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no' /><meta name="google-site-verification" content="vuXdGK5mafeCIvjzenv2uDtR4S-nxq8crCSAW_Vgyg0" /><link href='https://fonts.googleapis.com/css?family=Abel' rel='stylesheet' /><link href="${cssUrl}prettify.css?v=${cssVersion}" rel='stylesheet' type="text/css" /><link href="${cssUrl}app.css?v=${cssVersion}" rel="stylesheet" type="text/css" /><link href="${cssUrl}common.css?v=${cssVersion}" rel='stylesheet' type="text/css" />`;
         w.document.body.style.cssText = "background: #222; margin: 0; padding: 0; width: 100%; height: 100%; font-family: 'Abel', Arial, sans-serif; font-size: 16px;";
         const divAppRoot = w.document.createElement("div");
         divAppRoot.classList.add("ui");

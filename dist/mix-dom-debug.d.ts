@@ -1,12 +1,11 @@
 import * as mix_dom from 'mix-dom';
-import { Host, MixDOMTreeNode, MixDOMTreeNodeType, MixDOMDefTarget, MixDOMRenderOutput, ComponentRemoteType, ComponentTypeEither, Ref, ComponentTypeWith, ComponentProps, ComponentWith, ComponentFuncReturn, ComponentFunc, ComponentFuncMixable, ComponentTypeAny, ComponentFuncRequires, MixDOMProps, ComponentWiredFunc, Component, ComponentCtxFunc } from 'mix-dom';
+import { Host, MixDOMTreeNode, MixDOMTreeNodeType, MixDOMDefTarget, MixDOMRenderOutput, ComponentRemoteType, ComponentTypeEither, Ref, ComponentTypeWith, ComponentProps, ComponentWith, ComponentFuncReturn, ComponentFunc, ComponentWiredFunc, MixDOMProps, Component, ComponentCtxFunc } from 'mix-dom';
 import { ClassType } from 'mixin-types';
 import { Context } from 'data-signals';
 import * as dom_types from 'dom-types';
-import { CSSProperties, HTMLTags, DOMElement } from 'dom-types';
+import { CSSProperties, DOMTags, DOMElement } from 'dom-types';
 import * as dom_types_camelCase from 'dom-types/camelCase';
 import { HTMLAttributes } from 'dom-types/camelCase';
-import * as dom_types_core from 'dom-types/core';
 import { ComponentCtxFunc as ComponentCtxFunc$1 } from 'mix-dom/camelCase';
 
 type HostDebugSettings = {
@@ -37,7 +36,8 @@ type SettingsContextData = {
     hideUnmatched: boolean;
     ignoreSelection: boolean;
     ignoreFilter: boolean;
-    ignoreTip: boolean;
+    /** In "tip" mode clicking the row toggles the tip. In "select" clicking the row does selection. In "select-tip", clicking does selection, but hovering the row provides tip. */
+    rowMode: "select" | "select-tip" | "tip";
     shouldSelect: boolean;
     noneCollapsed: boolean;
     hiddenTipSections: TipSectionNames[];
@@ -72,7 +72,7 @@ interface DebugTreeItem extends TreeListItem<DebugTreeItem> {
     /** One liner of the content. For example, for a DOM element, it's the element as code. For a component, it's the class/function as a string. Does not contain nested content. */
     description: string;
 }
-type IconNames = "" | "console" | "info" | "theme" | "close" | "back" | "forwards" | "expanded" | "collapsed" | "show-all" | "show-matched" | "scroll-to" | "select-all" | "select-none" | "no-selection" | "no-filter" | "no-info" | "filter" | "filter-collapsed" | "filter-expanded" | "filter-parents" | "filter-children" | "item-selected" | "item-deselected";
+type IconNames = "" | "console" | "info" | "theme" | "close" | "back" | "forwards" | "expanded" | "collapsed" | "show-all" | "show-matched" | "scroll-to" | "select-all" | "select-none" | "no-selection" | "no-filter" | "click-select" | "click-select-tip" | "click-tip" | "filter" | "filter-collapsed" | "filter-expanded" | "filter-parents" | "filter-children" | "item-selected" | "item-deselected";
 
 interface MixDOMDebugType extends ClassType<MixDOMDebug, [container?: Element | null]> {
     /** Instance of the MixDOMDebug, once has started debugging. */
@@ -112,7 +112,7 @@ declare class MixDOMDebug {
 }
 
 /** Current app version. */
-declare const appVersion: "0.3.0";
+declare const appVersion: "0.3.5";
 
 declare const appIcons: Record<IconNames, MixDOMDefTarget | null>;
 
@@ -267,10 +267,13 @@ interface UIVirtualListInfo {
         iEnd: number;
     };
     class: {
-        /** Note. Behavior defaults to "auto". However, if you're using the callback to get the elRow, you might want to use "instant" instead - otherwise it won't map correctly. */
-        scrollToIndex: (iRow: number, behavior?: "auto" | "instant" | "smooth", onlyIfNeeded?: boolean, callback?: (elRow: HTMLElement | null) => void) => void;
+        getRootElement: () => HTMLElement | null;
+        getListElement: () => HTMLElement | null;
+        getFirstVisibleItem: (includeWithinMargin?: boolean) => HTMLElement | null;
         /** Get the virtual row element at the given iRow location. */
         getElementAt: (iRow: number) => HTMLElement | null;
+        /** Note. Behavior defaults to "auto". However, if you're using the callback to get the elRow, you might want to use "instant" instead - otherwise it won't map correctly. */
+        scrollToIndex: (iRow: number, behavior?: "auto" | "instant" | "smooth", onlyIfNeeded?: boolean, callback?: (elRow: HTMLElement | null) => void) => void;
     };
 }
 /** Row scroller component.
@@ -304,32 +307,6 @@ interface UIListInfo<Item extends any = any, CommonProps extends Record<string, 
 }
 declare function UIList<Item extends any = any, CommonProps extends Record<string, any> = {}>(_initProps: ComponentProps<UIListInfo<Item, CommonProps>>, comp: ComponentWith<UIListInfo<Item, CommonProps>>): ComponentFuncReturn<UIListInfo>;
 
-interface MixEnabledInfo {
-    props: {
-        enabled?: boolean;
-    };
-    state: {
-        enabled: boolean;
-    };
-    class: {
-        toggleEnabled: () => void;
-    };
-}
-declare const MixEnabled: ComponentFunc<MixEnabledInfo>;
-
-/** Requires MixEnabledInfo and provides toggling enabled off with "Escape" key. No info added. */
-declare const MixEscEnabled: ComponentFuncMixable<typeof MixEnabled>;
-
-interface MixPopupEnabledInfo {
-    class: {
-        /** Either a remote, or a node for a portal - if none, uses document.body. */
-        popupContainer: Node | ComponentRemoteType | null;
-        /** The render output should simply include this component. */
-        WithPopup: ComponentTypeAny;
-    };
-}
-declare const MixPopupEnabled: ComponentFuncMixable<typeof MixEnabled, MixPopupEnabledInfo>;
-
 interface MixOnEscapeInfo {
     class: {
         useEscape(enabled: boolean): void;
@@ -340,42 +317,6 @@ interface MixOnEscapeInfo {
 }
 declare const MixOnEscape: ComponentFunc<MixOnEscapeInfo>;
 
-interface MixMouseMoveInfo<El extends HTMLElement = HTMLElement> {
-    class: {
-        mouseRef: Ref<El>;
-        cancelMouse(): void;
-    };
-    signals: {
-        onMouseStart(e: MouseEvent): void;
-        onMouseMove(e: MouseEvent): void;
-        onMouseEnd(e: MouseEvent | null, cancelled: boolean): void;
-    };
-}
-declare const MixMouseMove: ComponentFunc<MixMouseMoveInfo>;
-
-interface MixNumberSliderInfo {
-    props: {
-        minValue: number;
-        maxValue: number;
-        initValue?: number;
-    };
-    state: {
-        value: number;
-    };
-    class: {
-        sliderAlign: "horizontal" | "vertical";
-        calcValueBy(e: MouseEvent): number;
-        setValue(value: number): void;
-    };
-}
-declare const MixNumberSlider: ComponentFuncRequires<MixMouseMoveInfo, MixNumberSliderInfo>;
-
-interface UIAppIconProps extends Omit<MixDOMProps<"span">, "class"> {
-    iconName: IconNames;
-    iconSize?: "small" | "normal" | "large";
-}
-declare function UIAppIcon(props: UIAppIconProps): MixDOMRenderOutput;
-
 interface MixHoverSignalInfo {
     signals: {
         onHover(isHovered: boolean): void;
@@ -385,11 +326,13 @@ interface MixHoverSignalInfo {
         hoverRef: Ref<HTMLElement>;
         /** Only used on mouse enter: if disabled, won't trigger timer -> set state. */
         hoverDisabled?: boolean | "one-time";
-        /** Timeout before the tip is triggered. Defaults to 500. */
+        /** Timeout before the tip is triggered. Defaults to 600. */
         hoverTimeout: number;
     };
     timers: "onMouseEnter" | string & {};
 }
+/** Provides hover feature. Renderer should assign comp.hoverRef to the element. */
+declare const MixHoverSignal: ComponentFunc<MixHoverSignalInfo>;
 
 interface MixPositionedPopupInfo {
     state: UIPopupContentsAlignProps & {
@@ -414,9 +357,17 @@ interface MixPositionedPopupInfo {
     };
     timers: "popupFade" | string & {};
 }
+/** Provides popup feature with auto positioning. Renderer should include <comp.WithTooltip/>. */
+declare const MixPositionedPopup: ComponentFunc<MixPositionedPopupInfo>;
+
+interface UIAppIconProps extends Omit<MixDOMProps<"span">, "class"> {
+    iconName: IconNames;
+    iconSize?: "small" | "normal" | "large";
+}
+declare function UIAppIcon(props: UIAppIconProps): MixDOMRenderOutput;
 
 declare const UIAppTipRemote: mix_dom.ComponentRemoteType<{}>;
-interface UIAppTipOwnProps<Tag extends HTMLTags = "div"> {
+interface UIAppTipOwnProps<Tag extends DOMTags = "div"> {
     tag: Tag;
     rootRef?: Ref<DOMElement<Tag>> | null;
     escToCloseTip?: boolean;
@@ -429,19 +380,19 @@ interface UIAppTipOwnProps<Tag extends HTMLTags = "div"> {
     className?: string;
     refreshId?: any;
 }
-interface UIAppTipOwnInfo<Tag extends HTMLTags = "div"> {
+interface UIAppTipOwnInfo<Tag extends DOMTags = "div"> {
     props: UIAppTipOwnProps<Tag> & MixDOMProps<Tag, "camelCase">;
     class: {
         setHovered: (isHovered: boolean) => void;
     };
 }
-type UIAppTipInfo<Tag extends HTMLTags = "div"> = MixOnEscapeInfo & MixHoverSignalInfo & MixPositionedPopupInfo & UIAppTipOwnInfo<Tag>;
+type UIAppTipInfo<Tag extends DOMTags = "div"> = MixOnEscapeInfo & MixHoverSignalInfo & MixPositionedPopupInfo & UIAppTipOwnInfo<Tag>;
 /** Simple button with hovertip. */
-declare const UIAppTip: <Tag extends HTMLTags = "div">(initProps: mix_dom.MixDOMInternalCompProps<{
+declare const UIAppTip: <Tag extends DOMTags = "div">(initProps: mix_dom.MixDOMInternalCompProps<{
     onEscape(): void;
 } & {
     onHover(isHovered: boolean): void;
-}> & UIAppTipOwnProps<Tag> & ([dom_types_core.DOMTags] extends [Tag] ? dom_types.DOMAttributesAny_camelCase : dom_types.DOMAttributes_camelCase<Tag, dom_types.DOMAttributesAny_camelCase>) & Omit<HTMLAttributes<Tag, Partial<dom_types_camelCase.HTMLCommonAttributes & dom_types.HTMLGlobalAttributes_camelCase & dom_types.GlobalListeners_camelCase & dom_types.ARIAAttributes_camelCase>>, "class">, comp: ComponentWith<UIAppTipInfo<Tag>>) => ComponentFuncReturn<UIAppTipInfo<Tag>>;
+}> & UIAppTipOwnProps<Tag> & ([DOMTags] extends [Tag] ? dom_types.DOMAttributesAny_camelCase : dom_types.DOMAttributes_camelCase<Tag, dom_types.DOMAttributesAny_camelCase>) & Omit<HTMLAttributes<Tag, Partial<dom_types_camelCase.HTMLCommonAttributes & dom_types.HTMLGlobalAttributes_camelCase & dom_types.GlobalListeners_camelCase & dom_types.ARIAAttributes_camelCase>>, "class">, comp: ComponentWith<UIAppTipInfo<Tag>>) => ComponentFuncReturn<UIAppTipInfo<Tag>>;
 
 type UIAppButtonProps = Omit<UIAppTipInfo<"button">["props"], "tag"> & {
     iconName?: IconNames;
@@ -449,7 +400,7 @@ type UIAppButtonProps = Omit<UIAppTipInfo<"button">["props"], "tag"> & {
     toggled?: boolean;
     invisible?: boolean;
     look?: "filled" | "edge" | "transparent";
-    size?: "narrow" | "large";
+    size?: "no" | "narrow" | "large";
     /** Use this for onClick with modifier key support. */
     onPress?: (e: MouseEvent | KeyboardEvent) => void;
 };
@@ -483,6 +434,8 @@ interface UIAppTreeItemInfo {
         toggleConcept?: (concept: MixDOMTreeNode["type"], reset?: boolean) => void;
         onToggleTip?: (id: DebugTreeItem["id"]) => void;
         onTipPresence?: (treeNode: DebugTreeItem["id"], type: "hoverable" | "popup", present: boolean) => void;
+        /** In "tip" mode clicking the row toggles the tip. In "select" clicking the row does selection. In "select-tip", clicking does selection, but hovering the row provides tip. */
+        rowMode?: "select" | "select-tip" | "tip";
     };
     state: {
         animFinished?: true;
@@ -500,6 +453,9 @@ interface UITreeNodeTypeInfo {
         onSelectItem?: (e: MouseEvent | KeyboardEvent) => void;
         onSelectConcept?: (e: MouseEvent | KeyboardEvent) => void;
         onTipPresence?: (treeNode: DebugTreeItem["id"], type: "hoverable" | "popup", present: boolean) => void;
+        onToggleTip?: (e: MouseEvent | KeyboardEvent) => void;
+        /** In "tip" mode clicking the row toggles the tip. In "select" clicking the row does selection. In "select-tip", clicking does selection, but hovering the row provides tip. */
+        rowMode?: "select" | "select-tip" | "tip";
     };
 }
 declare const UITreeNodeType: ComponentFunc<UITreeNodeTypeInfo>;
@@ -525,7 +481,8 @@ interface UIAppHostTreeInfo {
         showChildren: boolean;
         ignoreSelection: boolean;
         ignoreFilter: boolean;
-        ignoreTip: boolean;
+        /** In "tip" mode clicking the row toggles the tip. In "select" clicking the row does selection. In "select-tip", clicking does selection, but hovering the row provides tip. */
+        rowMode: "select" | "select-tip" | "tip";
         hideUnmatched: boolean;
         reselectRefreshId: {};
     };
@@ -558,4 +515,4 @@ interface UIAppInfo {
 }
 declare const UIApp: ComponentCtxFunc$1<UIAppInfo>;
 
-export { Align, AppContexts, ArrLikePropsOf, DebugContext, DebugContextData, DebugContextSignals, DebugTreeItem, DebugTreeItemType, FitBoxAlgoritms, FitLocks, FittingAlgoritm, HAlign, HostDebugLive, HostDebugSettings, IconNames, Margin, MarginSides, MixDOMDebug, MixDOMDebugType, MixEnabled, MixEnabledInfo, MixEscEnabled, MixMouseMove, MixMouseMoveInfo, MixNumberSlider, MixNumberSliderInfo, MixOnEscape, MixOnEscapeInfo, MixPopupEnabled, MixPopupEnabledInfo, Offset, Rect, SettingsContext, SettingsContextData, SettingsContextSignals, Size, TipSectionNames, TreeListItem, UIApp, UIAppButton, UIAppButtonProps, UIAppHostTree, UIAppHostTreeInfo, UIAppIcon, UIAppIconProps, UIAppInfo, UIAppInput, UIAppInputProps, UIAppTip, UIAppTipInfo, UIAppTipRemote, UIAppTopBar, UIAppTopBarInfo, UIAppTreeItem, UIAppTreeItemInfo, UIFitBox, UIFitBoxInfo, UIFitBoxProps, UIList, UIListInfo, UIPopupContainer, UIPopupContainerProps, UIPopupContents, UIPopupContentsAlignProps, UIPopupContentsProps, UITreeNodeType, UITreeNodeTypeInfo, UIVirtualList, UIVirtualListInfo, UIVirtualRow, UIVirtualRowProps, VAlign, allTipSectionNames, appIcons, appVersion, cleanMargin, computeSnappedValue, consoleLog, flattenTree, flattenTreeWith, wrapTip };
+export { Align, AppContexts, ArrLikePropsOf, DebugContext, DebugContextData, DebugContextSignals, DebugTreeItem, DebugTreeItemType, FitBoxAlgoritms, FitLocks, FittingAlgoritm, HAlign, HostDebugLive, HostDebugSettings, IconNames, Margin, MarginSides, MixDOMDebug, MixDOMDebugType, MixHoverSignal, MixHoverSignalInfo, MixOnEscape, MixOnEscapeInfo, MixPositionedPopup, MixPositionedPopupInfo, Offset, Rect, SettingsContext, SettingsContextData, SettingsContextSignals, Size, TipSectionNames, TreeListItem, UIApp, UIAppButton, UIAppButtonProps, UIAppHostTree, UIAppHostTreeInfo, UIAppIcon, UIAppIconProps, UIAppInfo, UIAppInput, UIAppInputProps, UIAppTip, UIAppTipInfo, UIAppTipRemote, UIAppTopBar, UIAppTopBarInfo, UIAppTreeItem, UIAppTreeItemInfo, UIFitBox, UIFitBoxInfo, UIFitBoxProps, UIList, UIListInfo, UIPopupContainer, UIPopupContainerProps, UIPopupContents, UIPopupContentsAlignProps, UIPopupContentsProps, UITreeNodeType, UITreeNodeTypeInfo, UIVirtualList, UIVirtualListInfo, UIVirtualRow, UIVirtualRowProps, VAlign, allTipSectionNames, appIcons, appVersion, cleanMargin, computeSnappedValue, consoleLog, flattenTree, flattenTreeWith, wrapTip };

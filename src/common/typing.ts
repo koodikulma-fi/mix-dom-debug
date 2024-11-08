@@ -47,7 +47,8 @@ export type SettingsContextData = {
     hideUnmatched: boolean;
     ignoreSelection: boolean;
     ignoreFilter: boolean;
-    ignoreTip: boolean;
+    /** In "tip" mode clicking the row toggles the tip. In "select" clicking the row does selection. In "select-tip", clicking does selection, but hovering the row provides tip. */
+    rowMode: "select" | "select-tip" | "tip";
     // Computed from local state. The selected and collapsed ids are held in UIAppHostTree.
     shouldSelect: boolean;
     noneCollapsed: boolean;
@@ -80,10 +81,6 @@ export interface TreeListItem<Item extends TreeListItem = any> {
     children?: Item[];
 }
 export type DebugTreeItemType = MixDOMTreeNodeType | "";
-    // | "dom"
-    // | "component"
-    // | "root"
-    // ;
 export interface DebugTreeItem extends TreeListItem<DebugTreeItem> {
     id: MixDOMTreeNode;
     treeNode: MixDOMTreeNode;
@@ -105,7 +102,6 @@ export type IconNames =
     | ""
 
     | "console"
-    // | "tip"
     | "info"
     | "theme"
     | "close"
@@ -126,8 +122,11 @@ export type IconNames =
 
     | "no-selection"
     | "no-filter"
-    | "no-info"
-    // | "no-tip"
+    // | "no-info"
+
+    | "click-select"
+    | "click-select-tip"
+    | "click-tip"
 
     | "filter"
     | "filter-collapsed"
@@ -138,12 +137,4 @@ export type IconNames =
     | "item-selected"
     | "item-deselected"
 
-    // | "type-root"
-    // | "type-host"
-    // | "type-boundary"
-    // | "type-pass"
-    // | "type-dom"
-    // | "type-portal"
-    // | "type-empty"
-    // | "type-unfilled"
     ;

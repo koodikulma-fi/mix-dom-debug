@@ -3,11 +3,9 @@
 
 // Libraries.
 import { classNames } from "dom-types";
-import { MixDOM, MixDOMRenderOutput, ComponentFunc, ComponentWith, ComponentRemoteType, ComponentRemote, MixDOMTreeNodePass } from "mix-dom";
+import { MixDOM, MixDOMRenderOutput, ComponentFunc, ComponentRemote, MixDOMTreeNodePass, MixDOMTreeNodeHost } from "mix-dom";
 // Common.
 import { DebugTreeItem, HostDebugSettings } from "../../../../common/index";
-// App UI common.
-import { UIAppTipInfo } from "../../common/index";
 // Local.
 import { beautify, escapeHTML, getMiniScrollableProps, getSnippetContainerProps, Prettify, PrettifyDelay } from "./beautifyHelpers";
 import { UIAppTipHeading, UIAppTipSection } from "./UIAppTipSection";
@@ -19,7 +17,6 @@ import { readComponentOneLine, RenderComponentChildren, RenderComponentPartList,
 export interface UIAppTipDisplayInfo {
     props: {
         item: DebugTreeItem;
-        tipComponent?: ComponentWith<UIAppTipInfo>;
         debugInfo?: HostDebugSettings | null;
         iUpdate?: number;
         onItemLink?: OnItemLink;
@@ -27,25 +24,31 @@ export interface UIAppTipDisplayInfo {
         escToCloseTip?: boolean;
         onHistoryItem?: (item: DebugTreeItem) => void;
         onTipPresence?: (treeNode: DebugTreeItem["id"], type: "hoverable" | "popup", present: boolean) => void;
+        /** In "tip" mode clicking the row toggles the tip. In "select" clicking the row does selection. In "select-tip", clicking does selection, but hovering the row provides tip. */
+        rowMode?: "select" | "select-tip" | "tip";
     };
     state: {
-        isAlive?: boolean;
+        isAlive: boolean;
         history: DebugTreeItem[];
         iHistory: number;
     };
     class: {
         onHistory: (iTo: number) => void;
-    }
+    };
+    timers: "alive";
 }
 export const UIAppTipDisplay: ComponentFunc<UIAppTipDisplayInfo> = (_props, comp) => {
 
-    comp.state = { history: [comp.props.item], iHistory: 0 };
+    comp.state = { history: [comp.props.item], iHistory: 0, isAlive: false };
+
+    // Let's give some time for DOM technical reasons.
+    const bringAlive = () => !comp.hasTimer("alive") && comp.setTimer("alive", () => comp.setState({ isAlive: true }), 25);
 
     // Key down.
     const onKeyDown = (e: KeyboardEvent) => {
         e.key === "Escape" && comp.props.escToCloseTip && comp.props.onItemLink && comp.props.onItemLink(null, "details-break");
     };
-    comp.listenTo("didMount", () => document.addEventListener("keydown", onKeyDown));
+    comp.listenTo("didMount", () => { bringAlive(); document.addEventListener("keydown", onKeyDown); });
     comp.listenTo("willUnmount", () => document.removeEventListener("keydown", onKeyDown));
 
     // Before update.
@@ -53,28 +56,37 @@ export const UIAppTipDisplay: ComponentFunc<UIAppTipDisplayInfo> = (_props, comp
         // Item changed (or re-selected) - modify history.
         if (prevProps && (prevProps.item !== comp.props.item || prevProps.reselectRefreshId !== comp.props.reselectRefreshId)) {
             // If already at the item, nothing to do.
-            if (comp.props.item === comp.state.history[comp.state.iHistory]) { }
-            // If next item would be the one, just travel in history one step.
+            if (comp.props.item === comp.state.history[comp.state.iHistory])
+                return;
+            // If next item would be the requested one, just travel in history one step. Instead of adding it.
             else if (comp.props.item === comp.state.history[comp.state.iHistory + 1])
-                comp.setInState("iHistory", comp.state.iHistory + 1);
+                comp.setState({ iHistory: comp.state.iHistory + 1, isAlive: false });
             // Normal case.
-            else {
+            else if (comp.props.item) {
                 // Cut and add.
                 const history = comp.state.history.slice(0, comp.state.iHistory + 1).concat([comp.props.item]);
                 // Navigate to the newly added.
-                comp.setState({ history, iHistory: history.length - 1 });
+                comp.setState({ history, iHistory: history.length - 1, isAlive: false });
             }
+            // Bring alive.
+            !comp.state.isAlive && bringAlive();
         }
     });
 
     comp.onHistory = (iTo: number) => {
-        comp.setInState("iHistory", Math.min(Math.max(0, iTo), comp.state.history.length - 1));
+        const forwards = iTo > comp.state.iHistory;
+        comp.setState({ iHistory: Math.min(Math.max(0, iTo), comp.state.history.length - 1), isAlive: false });
         comp.props.onHistoryItem && comp.props.onHistoryItem(comp.state.history[comp.state.iHistory]);
+        bringAlive();
+        comp.setTimer(null, () => {
+            const historyButtons = [...(comp.findElements()[0] as HTMLElement | undefined)?.querySelectorAll("button.history-button:not([disabled])") || []] as HTMLElement[];
+            (historyButtons[forwards ? 1 : 0] || historyButtons[0])?.focus();
+        }, 5);
     }
 
     const getHeadingProps = () => {
         return {
-            idToScroll: (comp.state.history[comp.state.iHistory] || comp.props.item).treeNode,
+            idToScroll: (comp.state.history[comp.state.iHistory]).treeNode,
             onItemLink: comp.props.onItemLink,
             history: comp.state.history,
             iHistory: comp.state.iHistory,
@@ -82,21 +94,15 @@ export const UIAppTipDisplay: ComponentFunc<UIAppTipDisplayInfo> = (_props, comp
         };
     }
 
-    const domDidMount = (domNode: Node) => {
-        domNode.addEventListener("mouseenter", () => comp.props.tipComponent?.setHovered(true));
-        domNode.addEventListener("mouseleave", () => comp.props.tipComponent?.setHovered(false));
-        comp.setTimer(null, () => comp.setState({ isAlive: true }), 1);
-    };
-
     const sProps = getSnippetContainerProps();
-    const onTipEnter = () => comp.props.onTipPresence && comp.props.onTipPresence(comp.props.item.treeNode, "popup", true);
-    const onTipLeave = () => comp.props.onTipPresence && comp.props.onTipPresence(comp.props.item.treeNode, "popup", false);
-
+    const onTipEnter = () => comp.props.rowMode === "select-tip" && comp.state.isAlive && comp.props.onTipPresence && comp.props.onTipPresence(comp.state.history[comp.state.iHistory].treeNode, "popup", true);
+    const onTipLeave = () => comp.props.rowMode === "select-tip" && comp.state.isAlive && comp.props.onTipPresence && comp.props.onTipPresence(comp.state.history[comp.state.iHistory].treeNode, "popup", false);
 
     return (props, state) => {
-        const item = comp.state.history[comp.state.iHistory] || comp.props.item;
+        const item = comp.state.history[comp.state.iHistory];
         const treeNode = item.treeNode;
         let showRenderedBy = true;
+        let headingContent: MixDOMRenderOutput = null;
         let preContent: MixDOMRenderOutput = null;
         let postContent: MixDOMRenderOutput = null;
         let domContentStr = MixDOM.readDOMString(treeNode, false, 0, null);
@@ -111,23 +117,18 @@ export const UIAppTipDisplay: ComponentFunc<UIAppTipDisplayInfo> = (_props, comp
                         domContentStr = '"' + domContentStr + '"';
                 }
                 // Normal nodes.
-                else {
-                    // const hasKids = !!(tag && treeNode.children[0] && hasContentInDefs(treeNode.def.childDefs)); // <-- Check more deeply. To skip empty passes.
-                    // tagStr = tag ? "<" + tag + (hasKids ? ">" : "/>") : "";
+                else
                     tagStr = item.description;
-                }
                 // Content.
-                preContent = <UIAppTipHeading title={tag ? (treeNode.domNode && treeNode.domNode["ownerSVGElement"] !== undefined ? "SVG" : "HTML") + " element" : "Text node"} extraTitle={<Prettify code={tagStr ? escapeHTML(tagStr) : item.description} />} {...getHeadingProps()} />
+                headingContent = <UIAppTipHeading title={tag ? (treeNode.domNode && treeNode.domNode["ownerSVGElement"] !== undefined ? "SVG" : "HTML") + " element" : "Text node"} extraTitle={<Prettify code={tagStr ? escapeHTML(tagStr) : item.description} className="layout-padding-l layout-inline-block" />} {...getHeadingProps()} />
                 break;
             }
             case "boundary": {
                 const tag = treeNode.def.tag;
                 const component = treeNode.boundary.component;
                 const rPasses = component.constructor.MIX_DOM_CLASS === "Remote" ? component.getHost().findTreeNodes(["pass"], 0, false, (tNode => (tNode as MixDOMTreeNodePass).def.getRemote && (tNode as MixDOMTreeNodePass).def.getRemote!() === component)) as MixDOMTreeNodePass[] : null;
-                // if (!domContentStr)
-                //     domContentStr = "\n";
+                headingContent = <UIAppTipHeading _key="heading" title={tag["MIX_DOM_CLASS"] === "Remote" ? "Remote component" : component.contextAPI ? <>Component <span class="style-text-small">(with ContextAPI)</span></> : "Component"} extraTitle={<b class="style-color-emphasis layout-padding-l-x layout-padding-m-y layout-inline-block">{item.name || "Anonymous"}</b>} {...getHeadingProps()} />;
                 preContent = <>
-                    <UIAppTipHeading _key="heading" title={tag["MIX_DOM_CLASS"] === "Remote" ? "Remote component" : component.contextAPI ? <>Component <span class="style-text-small">(with ContextAPI)</span></> : "Component"} extraTitle={<b class="style-color-emphasis">{item.name || "Anonymous"}</b>} {...getHeadingProps()} />
                     <UIAppTipSection _key="code" type="code" title="JS code" useDefaultLimits={false} >
                         <PrettifyDelay origCode={tag.toString()} prePrettifier={beautify} tag="pre" {...getMiniScrollableProps()} />
                     </UIAppTipSection>
@@ -145,8 +146,8 @@ export const UIAppTipDisplay: ComponentFunc<UIAppTipDisplayInfo> = (_props, comp
             }
             case "root": {
                 showRenderedBy = false;
-                preContent = (
-                    <UIAppTipHeading title="Root container" extraTitle={item.description ? <Prettify code={escapeHTML(item.description)} /> : null} {...getHeadingProps()} >
+                headingContent = (
+                    <UIAppTipHeading title="Root container" extraTitle={item.description ? <Prettify code={escapeHTML(item.description)} className="layout-padding-l layout-border-box" /> : null} {...getHeadingProps()} >
                         <ul class="style-ui-list">
                             <li>Contains the debugged host.</li>
                         </ul>
@@ -154,33 +155,34 @@ export const UIAppTipDisplay: ComponentFunc<UIAppTipDisplayInfo> = (_props, comp
                 );
                 break;
             }
-            case "host":
-                preContent = (
+            case "host": {
+                headingContent = (
                     <UIAppTipHeading title="Nested host" {...getHeadingProps()} >
                         <ul class="style-ui-list">
                             <li>Contains another host instance.</li>
                         </ul>
                     </UIAppTipHeading>
                 );
+                const host = (treeNode as MixDOMTreeNodeHost).def.host;
+                domContentStr = host && host.groundedTree.children[0] ? MixDOM.readDOMString(host.groundedTree.children[0], false, 0, null) : "";
                 break;
+            }
             case "pass":
-                preContent = (
-                    <UIAppTipHeading title={treeNode.def.getRemote ? "Remote pass" : "Content pass"} afterTitle={readComponentOneLine(treeNode, null, true)} {...getHeadingProps()} />
+                headingContent = (
+                    <UIAppTipHeading title={<span class="layout-padding-l-x layout-padding-m-y layout-inline-block">{treeNode.def.getRemote ? "Remote pass" : "Content pass"}</span>} afterTitle={readComponentOneLine(treeNode, null, true)} {...getHeadingProps()} />
                 );
                 postContent = <>
                     {treeNode.boundary?.innerBoundaries[0] ? <UIAppTipSection _key="children" type="children" title="Inner components"><RenderComponentChildren treeNode={treeNode} onItemLink={props.onItemLink}/></UIAppTipSection> : null}
                 </>;
                 break;
             case "portal":
-                // if (!domContentStr)
-                //     domContentStr = "\n";
-                preContent = (
-                    <UIAppTipHeading title="Portal container" afterTitle={<Prettify code={escapeHTML(item.description)} />} {...getHeadingProps()} />
+                headingContent = (
+                    <UIAppTipHeading title="Portal container" afterTitle={<Prettify code={escapeHTML(item.description)} className="layout-padding-l layout-border-box" />} {...getHeadingProps()} />
                 );
                 break;
             case "":
-                preContent = (
-                    <UIAppTipHeading title="Empty" {...getHeadingProps()} >
+                headingContent = (
+                    <UIAppTipHeading title={<span class="layout-padding-l layout-border-box">Empty</span>} {...getHeadingProps()} >
                         <ul class="style-ui-list">
                             <li>Empty treeNodes should not typically end up in the grounded tree.</li>
                         </ul>
@@ -188,15 +190,18 @@ export const UIAppTipDisplay: ComponentFunc<UIAppTipDisplayInfo> = (_props, comp
                 );
                 break;
         }
-        return <div class={classNames("style-ui-panel layout-scrollable style-scrollable flex-col layout-gap-m", sProps.className, state.isAlive && "layout-auto-pointer")} style={sProps.style} _signals={{domDidMount}} onMouseEnter={onTipEnter} onMouseLeave={onTipLeave} >
-            {preContent}
-            {showRenderedBy ? <RenderedByComponents treeNode={treeNode} iUpdate={props.iUpdate} onItemLink={props.onItemLink} /> : null}
-            {postContent}
-            {treeNode.type === "root" || !domContentStr ? null :
-                <UIAppTipSection type="renders" title="Renders in DOM" useDefaultLimits={false} >
-                    <PrettifyDelay origCode={domContentStr.replace(/\t/g, "    ")} prePrettifier={escapeHTML} tag="pre" {...getMiniScrollableProps()} />
-                </UIAppTipSection>
-            }
+        return <div class={classNames("style-ui-panel flex-col", sProps.className, state.isAlive ? "layout-auto-pointer" : "layout-no-pointer")} style={sProps.style} onMouseEnter={onTipEnter} onMouseLeave={onTipLeave} >
+            {headingContent}
+            <div class="layout-scrollable style-scrollable flex-col layout-gap-m layout-padding-m">
+                {preContent}
+                {showRenderedBy ? <RenderedByComponents treeNode={treeNode} iUpdate={props.iUpdate} onItemLink={props.onItemLink} /> : null}
+                {postContent}
+                {treeNode.type === "root" || !domContentStr ? null :
+                    <UIAppTipSection type="renders" title="Renders in DOM" useDefaultLimits={false} >
+                        <PrettifyDelay origCode={domContentStr.replace(/\t/g, "    ")} prePrettifier={escapeHTML} tag="pre" {...getMiniScrollableProps()} />
+                    </UIAppTipSection>
+                }
+            </div>
         </div>;
     }
 }
