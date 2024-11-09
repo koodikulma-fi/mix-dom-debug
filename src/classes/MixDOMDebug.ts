@@ -71,8 +71,9 @@ export class MixDOMDebug {
         this.ownHost = new Host(
             newDef(UIApp, { refreshId: this.refreshId }),
             container || null,
-            // { onlyRunInContainer: true, renderTimeout: null },
-            { onlyRunInContainer: true, updateTimeout: 200, renderTimeout: 30 },
+            { onlyRunInContainer: true, renderTimeout: null },
+            // { onlyRunInContainer: true, updateTimeout: 200, renderTimeout: 30 },
+            
             // <-- HAA..! THIS IS TEH PROBLEM CASE.. UPDATETIMEOUT IS LONGER THAN RENDERTIMEOUT..
             // ........ <-- SHOULD PREVENT LOGICALLY FROM RUNNING RENDERS IN BETWEEN..! THEN CAN NEVER OCCUR.. NOT EVEN RARELY..!
 
