@@ -18,7 +18,7 @@ export interface UIAppTopBarInfo {
     state: Omit<SettingsContextData, "hiddenTipSections">;
     contexts: AppContexts;
 }
-
+type Test = boolean | never extends never ? true : false;
 export const UIAppTopBar: ComponentCtxFunc<UIAppTopBarInfo> = function DebugHost(_initProps, comp, cApi) {
 
     // Context to state.
@@ -39,8 +39,7 @@ export const UIAppTopBar: ComponentCtxFunc<UIAppTopBarInfo> = function DebugHost
     cApi.listenToData("settings", (settings) => {
         const { hiddenTipSections, ...s } = settings! || comp.state;
         comp.setState({ ...s });
-    }); //, [comp.state]);
-     // <-- WHY KEEPS UNDEFINED IN TYPING..
+    });
 
     // Togglers.
     const setFilter = (filter: string) => {
@@ -85,7 +84,7 @@ export const UIAppTopBar: ComponentCtxFunc<UIAppTopBarInfo> = function DebugHost
                 _key="filter"
                 look="edge"
                 type="text"
-                disabled={state.ignoreFilter || undefined}
+                disabled={state.ignoreFilter}
                 escToCloseTip={true}
                 escToClearInput={true}
                 value={state.filter}

@@ -70,7 +70,6 @@ export function UIAppTreeItem(_initProps: ComponentProps<UIAppTreeItemInfo>, com
                 break;
         }
     };
-    
     comp.listenTo("didMount", () => {
         // Use 25ms timeout before revealing. It seems browsers want approximately that much (at least 20ms) - after spawning the element, before can animate.
         comp.props.animate && comp.setTimer(null, () => comp.setState({ animFinished: true }), 25);

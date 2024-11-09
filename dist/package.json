@@ -1,6 +1,6 @@
 {
   "name": "mix-dom-debug",
-  "version": "0.3.5",
+  "version": "0.3.6",
   "description": "Debugging middleware for contexts from mix-dom",
   "keywords": [
     "MixDOM",
@@ -45,9 +45,9 @@
     "build": "tsc && rollup -c rollup.config.js"
   },
   "dependencies": {
-    "mix-dom": "~4.2.1",
+    "mix-dom": "~4.3.0",
     "data-memo": "~1.0.3",
-    "data-signals": "~1.2.0",
-    "dom-types": "~1.1.1"
+    "data-signals": "~1.2.1",
+    "dom-types": "~1.1.2"
   }
 }

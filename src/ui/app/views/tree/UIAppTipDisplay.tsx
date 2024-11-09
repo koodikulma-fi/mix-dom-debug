@@ -79,7 +79,7 @@ export const UIAppTipDisplay: ComponentFunc<UIAppTipDisplayInfo> = (_props, comp
         comp.props.onHistoryItem && comp.props.onHistoryItem(comp.state.history[comp.state.iHistory]);
         bringAlive();
         comp.setTimer(null, () => {
-            const historyButtons = [...(comp.findElements()[0] as HTMLElement | undefined)?.querySelectorAll("button.history-button:not([disabled])") || []] as HTMLElement[];
+            const historyButtons = [...(comp.queryElement("div.style-ui-panel") as HTMLElement | undefined)?.querySelectorAll("button.history-button:not([disabled])") || []] as HTMLElement[];
             (historyButtons[forwards ? 1 : 0] || historyButtons[0])?.focus();
         }, 5);
     }

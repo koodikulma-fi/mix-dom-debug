@@ -106,7 +106,7 @@ export const UIVirtualList = MixDOM.component<UIVirtualListInfo>((component) => 
 	};
 
 	component.getElementAt = (iRow) => {
-		return containerRef.getElement()?.querySelectorAll(".list-content .ui-virtual-row")[iRow - component.getLastState().iStart] as HTMLElement | undefined || null;
+		return containerRef.getElement()?.querySelectorAll(".list-content .ui-virtual-row")[iRow - component.getRenderedState().iStart] as HTMLElement | undefined || null;
 	};
 
 	component.getFirstVisibleItem = (includeWithinMargin) => {
@@ -227,11 +227,6 @@ export const UIVirtualList = MixDOM.component<UIVirtualListInfo>((component) => 
 				: rowContent;
 		});
 
-		// if (!rows[0])
-		// 	console.log(" NO ROWS", {...state}, component);
-		// else
-		// 	console.log("rows", rows.length, state.iStart, state.iEnd, state.height);
-		
 		// Render the whole thing.
 		return (
 			<div

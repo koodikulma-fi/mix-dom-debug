@@ -71,7 +71,25 @@ export class MixDOMDebug {
         this.ownHost = new Host(
             newDef(UIApp, { refreshId: this.refreshId }),
             container || null,
-            { onlyRunInContainer: true, renderTimeout: null },
+            // { onlyRunInContainer: true, renderTimeout: null },
+            { onlyRunInContainer: true, updateTimeout: 200, renderTimeout: 30 },
+            // <-- HAA..! THIS IS TEH PROBLEM CASE.. UPDATETIMEOUT IS LONGER THAN RENDERTIMEOUT..
+            // ........ <-- SHOULD PREVENT LOGICALLY FROM RUNNING RENDERS IN BETWEEN..! THEN CAN NEVER OCCUR.. NOT EVEN RARELY..!
+
+            // { onlyRunInContainer: true, renderTimeout: 200 },
+            // { onlyRunInContainer: true, renderTimeout: 500 },
+            // { onlyRunInContainer: true, renderTimeout: 100, disableRendering: true },
+
+            // <-- EVEN WHEN HAS DISABLED RENDERING ... IT FREEZES..!!!
+
+            // { onlyRunInContainer: true, updateTimeout: 500, renderTimeout: null }, // TEST..!
+            // { onlyRunInContainer: true, renderTimeout: 100 }, // DEBUG TEST..!
+
+            // <-- THIS ACTUALLY CAUSES A FREEZE..!!
+            // .......... <-- VERY LIKELY EXPLAINS THE FREEZE CSAE..!! IT FREEZED THE DOCS TOO..!
+            //  SIMPLY DOES NOT WORK CURRENTLY.
+            // .... MAYBE WE COULD JUST REMOVE THE WHOLE FEATURE..????
+
             this.contexts
         );
         this.initialize();

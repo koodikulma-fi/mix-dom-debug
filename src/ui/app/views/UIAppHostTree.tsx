@@ -321,7 +321,7 @@ export const UIAppHostTree: ComponentCtxFunc<UIAppHostTreeInfo> = function Debug
 
     const toggleConcept = (concept: MixDOMTreeNode["type"], reset?: boolean) => {
         // Prepare.
-        let filter = cApi.getInData("settings.filter") || "";
+        let filter = cApi.getInData("settings.filter", "");
         const cStr = "[" + concept + "]";
         let splits = filter ? filter.split(",") : [];
         const lowSplits = splits.map(s => s.trim().toLowerCase());
@@ -609,7 +609,6 @@ export const UIAppHostTree: ComponentCtxFunc<UIAppHostTreeInfo> = function Debug
     };
     /** To account for history vs. current again. */
     const setTipBy = (treeNode: Item["id"] | null, useRefreshId: boolean = true) => {
-        console.log(" setTipBy" , treeNode);
         if (!treeNode)
             tipPresence &= ~2;
         comp.clearTimers("tip-hover", "skip-hover");
@@ -624,7 +623,6 @@ export const UIAppHostTree: ComponentCtxFunc<UIAppHostTreeInfo> = function Debug
         if (comp.state.rowMode !== "select-tip")
             return;
         // Modify presence.
-        console.log(" onTipPresence", type, present);
         const flag = type === "popup" ? 2 : 1;
         tipPresence = present ? tipPresence | flag : tipPresence &~ flag;
         // Toggle on.
@@ -672,8 +670,7 @@ export const UIAppHostTree: ComponentCtxFunc<UIAppHostTreeInfo> = function Debug
     const Wired = MixDOM.wired<{ item: Item; }, CommonProps>(
         // Builder.
         () => {
-            // return getCommonProps(comp.state.debugSettings, comp.state.debugLive?.iUpdate, comp.state.rowMode); // For v4.2.1
-            return { ...getCommonProps(comp.state.debugSettings, comp.state.debugLive?.iUpdate, comp.state.rowMode) }; // For v4.2.0
+            return getCommonProps(comp.state.debugSettings, comp.state.debugLive?.iUpdate, comp.state.rowMode);
         },
         // Mixer.
         // null,

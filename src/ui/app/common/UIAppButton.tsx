@@ -44,7 +44,7 @@ export const UIAppButton: ComponentFunc<{ props: UIAppButtonProps; }> = (_props,
         return <UIAppTip<"button">
                 {...passProps}
                 tag="button"
-                disabled={(invisible || disabled && disabled !== "false") && true || undefined}
+                disabled={invisible ? true : disabled}
                 onKeyDown={onKeyDown}
                 onClick={onClick}
                 className={classNames(
