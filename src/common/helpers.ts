@@ -1,12 +1,34 @@
 
 // - Imports - //
 
-import { MixDOM, MixDOMRenderOutput } from "mix-dom";
-import { HostDebugSettings } from "./typing";
+import { MixDOM, MixDOMRenderOutput, MixDOMTreeNode, MixDOMTreeNodePass, SourceBoundary } from "mix-dom";
+import { DebugTreeItemType, HostDebugSettings } from "./typing";
 import { classNames } from "dom-types";
 
 
 // - Helpers - //
+
+export function getItemTypeFrom(treeNode: MixDOMTreeNode): DebugTreeItemType {
+    switch(treeNode.type) {
+        case "":
+            return "empty";
+        case "dom":
+            return treeNode.def.domContent && (treeNode.def.domContent as Node).nodeType ? "dom-external" : 
+                treeNode.def.domElement !== undefined ? "dom-pseudo" :
+                !treeNode.def.tag ? "dom-text" :
+                "dom-element";
+        case "boundary":
+            return "component";
+        default:
+            return treeNode.type;
+    }
+}
+
+export function getPassPhaseAndSource(treeNode: MixDOMTreeNodePass): [phrase: string, sBoundary: SourceBoundary | null] {
+    return treeNode.def.getRemote ?
+        ["Remote pass", treeNode.def.getRemote().boundary] : 
+        ["Content pass", treeNode.boundary && treeNode.boundary.sourceBoundary];
+}
 
 export function consoleLog(debugInfo: HostDebugSettings | null | undefined, ...args: any[]): void {
     console.log(...args);

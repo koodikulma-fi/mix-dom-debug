@@ -7,16 +7,6 @@
     --opacity-dimmed: .6;
     --opacity-disabled: .45;
 
-    --color-overlay-white-0: rgba(255, 255, 255, 0);
-    --color-overlay-white-s: rgba(255, 255, 255, .1);
-    --color-overlay-white-m: rgba(255, 255, 255, .3);
-    --color-overlay-white-l: rgba(255, 255, 255, .5);
-
-    --color-overlay-black-0: rgba(0, 0, 0, 0);
-    --color-overlay-black-s: rgba(0, 0, 0, .1);
-    --color-overlay-black-m: rgba(0, 0, 0, .3);
-    --color-overlay-black-l: rgba(0, 0, 0, .5);
-
     --color-overlay-mid-0: rgba(127, 127, 127, 0);
     --color-overlay-mid-xs: rgba(127, 127, 127, .05);
     --color-overlay-mid-s: rgba(127, 127, 127, .1);
@@ -62,6 +52,16 @@
     --color-overlay-alt-l: rgba(255, 255, 255, .5);
     --color-overlay-alt-xl: rgba(255, 255, 255, .9);
 
+    --color-overlay-white-0: rgba(255, 255, 255, 0);
+    --color-overlay-white-s: rgba(255, 255, 255, .1);
+    --color-overlay-white-m: rgba(255, 255, 255, .3);
+    --color-overlay-white-l: rgba(255, 255, 255, .5);
+
+    --color-overlay-black-0: rgba(0, 0, 0, 0);
+    --color-overlay-black-s: rgba(0, 0, 0, .2);
+    --color-overlay-black-m: rgba(0, 0, 0, .5);
+    --color-overlay-black-l: rgba(0, 0, 0, .75);
+
 }
 
 :root .color-theme-light {
@@ -99,11 +99,15 @@
     --color-overlay-alt-l: rgba(0, 0, 0, .5);
     --color-overlay-alt-xl: rgba(0, 0, 0, .9);
 
+    --color-overlay-white-0: rgba(255, 255, 255, 0);
+    --color-overlay-white-s: rgba(255, 255, 255, .2);
+    --color-overlay-white-m: rgba(255, 255, 255, .5);
+    --color-overlay-white-l: rgba(255, 255, 255, .75);
 
-/* <-- WE NEED SOME... LIKE.. THAT IT'S NOT TOTALLY FLIPPABLE..
-  .. CONSIDER BUTTONS... 
-   .. NO ... JSUT CHANGE THE IDAE.. LET'S DO MIRRORIG...
- */
+    --color-overlay-black-0: rgba(0, 0, 0, 0);
+    --color-overlay-black-s: rgba(0, 0, 0, .1);
+    --color-overlay-black-m: rgba(0, 0, 0, .3);
+    --color-overlay-black-l: rgba(0, 0, 0, .5);
 
 }
 

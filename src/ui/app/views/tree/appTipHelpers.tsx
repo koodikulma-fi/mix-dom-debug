@@ -6,7 +6,7 @@ import { classNames } from "dom-types";
 import { createTrigger } from "data-memo";
 import { MixDOM, Component, MixDOMRenderOutput, ComponentFunc, MixDOMTreeNodeBoundary, MixDOMTreeNode, MixDOMTreeNodePass, ComponentWiredFunc, ComponentWiredType, ComponentRemote, SourceBoundary } from "mix-dom";
 // Common.
-import { DebugTreeItem } from "../../../../common/index";
+import { DebugTreeItem, getPassPhaseAndSource } from "../../../../common/index";
 // App UI common.
 import { UIAppButton } from "../../common/UIAppButton";
 // Local.
@@ -26,16 +26,7 @@ export function readComponentOneLine(treeNode: MixDOMTreeNodeBoundary | MixDOMTr
             <Prettify code={treeNode.def.tag.toString()} className="style-text-ellipsis" />
         </>;
     // Remote content pass.
-    let phrase: string;
-    let sBoundary: SourceBoundary | null;
-    if (treeNode.def.getRemote) {
-        phrase = "Remote pass";
-        sBoundary = treeNode.def.getRemote().boundary;
-    }
-    else {
-        phrase = "Content pass";
-        sBoundary = treeNode.boundary && treeNode.boundary.sourceBoundary;
-    }
+    const [phrase, sBoundary] = getPassPhaseAndSource(treeNode);
     // Content pass.
     const name = sBoundary && sBoundary._outerDef.tag.name || "Anonymous";
     return <>
@@ -45,15 +36,21 @@ export function readComponentOneLine(treeNode: MixDOMTreeNodeBoundary | MixDOMTr
     </>;
 }
 
-export function getGroundingNode(treeNode: MixDOMTreeNode): MixDOMTreeNodeBoundary | MixDOMTreeNodePass | null {
+export function getGroundingTreeNode(treeNode: MixDOMTreeNode): MixDOMTreeNodeBoundary | MixDOMTreeNodePass | null {
+    // Loop up.
     let tNode: MixDOMTreeNode | null = treeNode;
     while (tNode = tNode.parent) {
         switch(tNode.type) {
+            // Don't go pass a root container.
+            case "root":
+                break;
+            // Found.
             case "pass":
             case "boundary":
                 return tNode;
         }
     }
+    // Not found.
     return null;
 }
 
@@ -69,11 +66,14 @@ export function ComponentLink(props: { name: string; onPress?: (e: MouseEvent | 
 export function RenderComponentPartList(props: { component: Component; part: "props" | "state" | "contexts"; }) {
     const isCtx = props.part === "contexts";
     const portion = isCtx ? props.component.contextAPI?.getContexts() || {} : props.component[props.part] || {};
-    const keys = Object.keys(portion);
+    return <RenderPartList portion={portion} overrideText={isCtx ? "Context" : undefined} />;
+}
+export function RenderPartList<Key extends string = string>(props: { portion: Partial<Record<Key, any>>; keys?: Key[]; overrideText?: string; }) {
+    const keys = props.keys || Object.keys(props.portion);
     return keys[0] === undefined ? null : (
         <ul class="style-ui-list">{keys.map(prop =>
             <li _key={prop} class="flex-row flex-align-items-baseline layout-gap-l" >
-                <RenderPropertyName bold={true}>{prop}: </RenderPropertyName><Prettify code={isCtx ? "Context" : beautify(stringifyObject(portion[prop], false, 2))} tag="pre" className="style-text-ellipsis" />
+                <RenderPropertyName bold={true}>{prop}: </RenderPropertyName><Prettify code={props.overrideText || beautify(stringifyObject(props.portion[prop], false, 2))} tag="pre" className="style-text-ellipsis" />
             </li>)}
         </ul>
     );
@@ -163,16 +163,19 @@ export const RenderedByComponents: ComponentFunc<{ props: { treeNode: MixDOMTree
     const callbacks: Map<MixDOMTreeNodeBoundary | MixDOMTreeNodePass, (e: MouseEvent | KeyboardEvent) => void> = new Map();
     const beforeRender = createTrigger<number | undefined>(() => {
         // Through nodes.
-        const gComponentNode = getGroundingNode(treeNode);
-        let thru = gComponentNode;
-        while (thru && thru !== sComponentNode) {
-            throughNodes.push(thru);
-            // if (thru.type === "pass" && sRealSourceNode && thru.def.contentPass?.sourceBoundary?.treeNode === sRealSourceNode)
-            if (thru.def.getRemote && thru.def.getRemote().boundary.treeNode === sComponentNode)
-                break;
-            thru = getGroundingNode(thru);
+        // .. Note that if has no source boundary, it must be the host's root source boundary. In that case, don't collect through nodes.
+        throughNodes = [];
+        if (sComponentNode) {
+            let thru = getGroundingTreeNode(treeNode);
+            while (thru && thru !== sComponentNode) {
+                throughNodes.push(thru);
+                // if (thru.type === "pass" && sRealSourceNode && thru.def.contentPass?.sourceBoundary?.treeNode === sRealSourceNode)
+                if (thru.def.getRemote && thru.def.getRemote().boundary.treeNode === sComponentNode)
+                    break;
+                thru = getGroundingTreeNode(thru);
+            }
+            throughNodes.reverse();
         }
-        throughNodes.reverse();
         // Callbacks.
         const unusedKeys = new Set(callbacks.keys());
         for (const tNode of [...[sComponentNode, sRealSourceNode].filter(t => t), ...throughNodes]) {
@@ -196,8 +199,8 @@ export const RenderedByComponents: ComponentFunc<{ props: { treeNode: MixDOMTree
         return !sComponentNode && !throughNodes[0] ? null : (
             <UIAppTipSection type="rendered-by" title="Rendered by component">
                 <ul class="style-ui-list">
-                    {sRealSourceNode ? <li {...liProps} ><RenderPropertyName italic={true}>Pass from: </RenderPropertyName>{readComponentOneLine(sRealSourceNode, callbacks.get(sRealSourceNode))}</li> : null}
-                    {sComponentNode ? <li {...liProps} ><RenderPropertyName italic={true}>Source: </RenderPropertyName>{readComponentOneLine(sComponentNode, callbacks.get(sComponentNode))}</li> : null}
+                    {sRealSourceNode ? <li {...liProps} _key="pass" ><RenderPropertyName italic={true}>Pass from: </RenderPropertyName>{readComponentOneLine(sRealSourceNode, callbacks.get(sRealSourceNode))}</li> : null}
+                    {sComponentNode ? <li {...liProps} _key="source" ><RenderPropertyName italic={true}>Source: </RenderPropertyName>{readComponentOneLine(sComponentNode, callbacks.get(sComponentNode))}</li> : null}
                     {throughNodes.map(thru => <li {...liProps} _key={thru.boundary!.bId}><RenderPropertyName italic={true}>Through: </RenderPropertyName>{readComponentOneLine(thru, callbacks.get(thru))}</li>)}
                 </ul>
             </UIAppTipSection>

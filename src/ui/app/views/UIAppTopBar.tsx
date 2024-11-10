@@ -70,7 +70,7 @@ export const UIAppTopBar: ComponentCtxFunc<UIAppTopBarInfo> = function DebugHost
     const renderFilterParentsTip = () => wrapTip(<div>Whether shows parents with matching children.</div>);
     const renderFilterChildrenTip = () => wrapTip(<div>Whether shows children of matching parents.</div>);
     const renderThemesTip = () => wrapTip(<div>Toggle color theme.</div>);
-    const renderInputTip = () => wrapTip(<div>Filter items by keywords.<br/> - Separate by comma (<b>,</b>) and join by space (<b> </b>).<br/> - Use brackets for tags: [root], [boundary], [dom], [portal], [pass], [host]</div>);
+    const renderInputTip = () => wrapTip(<div>Filter items by keywords.<br/> - Separate by comma (<b>,</b>) and join by space (<b> </b>).<br/> - Use brackets for tags: [component], [dom], [portal], [pass], [host], [root]</div>);
     const renderConsoleTip = () => wrapTip(<div>Click to log the debugged <b>Host</b> instance in console.</div>);
 
     // Render.

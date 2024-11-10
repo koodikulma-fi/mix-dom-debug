@@ -5,7 +5,7 @@
 import { classNames } from "dom-types";
 import { MixDOM, Component, ComponentProps, ComponentFuncReturn, MixDOMPreProps, MixDOMTreeNode } from "mix-dom";
 // Common.
-import { HostDebugSettings, DebugTreeItem, consoleLog, wrapTip } from "../../../../common/index";
+import { HostDebugSettings, DebugTreeItem, consoleLog, wrapTip, DebugTreeItemType, getItemTypeFrom } from "../../../../common/index";
 // App UI common.
 import { UIAppButton } from "../../common/index";
 // Local.
@@ -26,7 +26,7 @@ export interface UIAppTreeItemInfo {
         dimmed?: boolean;
         toggleCollapsed?: (item: DebugTreeItem, mode?: "level" | "siblings" | "parents" | "chain" | "reset" | "self") => void;
         toggleSelected?: (item: DebugTreeItem, mode?: "level" | "siblings" | "parents" | "chain" | "reset" | "self") => void;
-        toggleConcept?: (concept: MixDOMTreeNode["type"], reset?: boolean) => void;
+        toggleConcept?: (concept: DebugTreeItemType, reset?: boolean) => void;
         onToggleTip?: (id: DebugTreeItem["id"]) => void;
         onTipPresence?: (treeNode: DebugTreeItem["id"], type: "hoverable" | "popup", present: boolean) => void;
         /** In "tip" mode clicking the row toggles the tip. In "select" clicking the row does selection. In "select-tip", clicking does selection, but hovering the row provides tip. */
@@ -46,7 +46,7 @@ export function UIAppTreeItem(_initProps: ComponentProps<UIAppTreeItemInfo>, com
         comp.props.toggleSelected && comp.props.toggleSelected(comp.props.item, e.shiftKey ? "level" : e.ctrlKey || e.metaKey ? "siblings" : e.altKey ? "reset" : "self");
     };
     const onSelectConcept = (e: MouseEvent | KeyboardEvent) => {
-        comp.props.toggleConcept && comp.props.toggleConcept(comp.props.item.treeNode.type, e.ctrlKey || e.altKey || e.metaKey);
+        comp.props.toggleConcept && comp.props.toggleConcept(getItemTypeFrom(comp.props.item.treeNode), e.ctrlKey || e.altKey || e.metaKey);
     };
     const onToggleTip = (e: MouseEvent | KeyboardEvent) => {
         comp.props.onToggleTip && comp.props.onToggleTip(comp.props.item.treeNode);
@@ -59,7 +59,7 @@ export function UIAppTreeItem(_initProps: ComponentProps<UIAppTreeItemInfo>, com
                 break;
             case "root":
             case "dom":
-            case "boundary":
+            case "portal":
                 consoleLog(comp.props.debugInfo, "MixDOMDebug: Log DOM element", item.treeNode.domNode);
                 break;
             case "host":
@@ -85,7 +85,7 @@ export function UIAppTreeItem(_initProps: ComponentProps<UIAppTreeItemInfo>, com
     // 
     return (props, state) => {
         const leftOffset = props.item.level * 6;
-        const colorClass = `style-stroke-app-type-${props.item.treeNode.type || "empty"}`;
+        const colorClass = `style-stroke-app-type-${getItemTypeFrom(props.item.treeNode)}`;
         return <div
             role="treeitem"
             class={classNames("ui-app-tree-item layout-fit-height layout-margin-m-x flex-row flex-align-items-center layout-gap-m style-hoverable", props.dimmed && "style-disabled", props.animate && (!state.animFinished ? "style-opacity-0" : "style-opacity-1"))}

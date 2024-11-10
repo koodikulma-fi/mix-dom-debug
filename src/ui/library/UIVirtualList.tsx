@@ -162,16 +162,15 @@ export const UIVirtualList = MixDOM.component<UIVirtualListInfo>((component) => 
 		const container = containerRef.getElement();
 		const scrollTop = container?.scrollTop || 0;
 		const nTolerance = component.props.rowTolerance !== undefined ? component.props.rowTolerance : 2;
-		const newHeight = container?.offsetHeight || 0; // component.state.height;
+		const height = container?.offsetHeight || 0;
 		const iMax = component.props.nRows - 1;
 		const iStart = Math.min(Math.max(
 			0,
 			Math.floor(scrollTop / component.props.rowHeight - nTolerance)
 		), iMax);
 		const iEnd = Math.min(Math.floor(
-			(scrollTop + newHeight) / component.props.rowHeight + nTolerance
+			(scrollTop + height) / component.props.rowHeight + nTolerance
 		), iMax);
-		const height = container?.offsetHeight || 0;
 		// Update - we use shallow check already here, to stop the flow early.
 		// .. Even if we didn't, it still wouldn't re-render due to default settings.
 		const newState = { iStart, iEnd, height };
@@ -231,7 +230,7 @@ export const UIVirtualList = MixDOM.component<UIVirtualListInfo>((component) => 
 		return (
 			<div
 				_ref={containerRef}
-				className={classNames("ui-virtual-list layout-scrollable style-scrollable", props.className)}
+				className={classNames("ui-virtual-list layout-scrollable style-scrollable layout-fit-height", props.className)}
 				style={{
 					// overflow: "auto",
 					display: "flex",

@@ -62,16 +62,17 @@ export const PrettifyDelay: ComponentFunc<PrettifyDelayInfo> = (_props, comp) =>
     }, undefined, "shallow");
 
     return (props, state) => {
-        reset([props.resetId, props.origCode]);
+        // Update.
+        const origCode = props.origCode.trim();
+        reset([props.resetId, origCode]);
+        // Get.
         const className = classNames("style-ui-code prettyprint", props.className);
-        const code = (props.prePrettifier ? props.prePrettifier(props.origCode) : props.origCode).trim();
-
+        const code = props.prePrettifier ? props.prePrettifier(origCode) : origCode;
+        // Prettify.
         if (state.isReady && window["PR"])
             return MixDOM.defHTML(window["PR"]["prettyPrintOne"](code), props.tag || "code", { className, style: props.style });
-        return MixDOM.defHTML(code, props.tag || "code", { className, style: props.style });
-
-        // // Fix in v4.2.0: Cannot flip between def and defHTML.
-        // return MixDOM.def(props.tag || "code", { class: className, style: props.style }, props.origCode);
+        // Just text.
+        return MixDOM.def(props.tag || "code", { class: className, style: props.style }, origCode);
     }
 }
 

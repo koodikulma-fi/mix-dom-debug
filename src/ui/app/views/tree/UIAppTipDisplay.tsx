@@ -5,11 +5,14 @@
 import { classNames } from "dom-types";
 import { MixDOM, MixDOMRenderOutput, ComponentFunc, ComponentRemote, MixDOMTreeNodePass, MixDOMTreeNodeHost } from "mix-dom";
 // Common.
-import { DebugTreeItem, HostDebugSettings } from "../../../../common/index";
+import { consoleLog, DebugTreeItem, getItemTypeFrom, HostDebugSettings, wrapTip } from "../../../../common/index";
+// Common in UI.
+import { UIAppButton } from "../../common/index";
 // Local.
 import { beautify, escapeHTML, getMiniScrollableProps, getSnippetContainerProps, Prettify, PrettifyDelay } from "./beautifyHelpers";
 import { UIAppTipHeading, UIAppTipSection } from "./UIAppTipSection";
-import { readComponentOneLine, RenderComponentChildren, RenderComponentPartList, RenderComponentWiredChildren, RenderComponentRemoteChildren, RenderedByComponents, OnItemLink } from "./appTipHelpers";
+import { readComponentOneLine, RenderComponentChildren, RenderComponentPartList, RenderComponentWiredChildren, RenderComponentRemoteChildren, RenderedByComponents, OnItemLink, RenderPartList } from "./appTipHelpers";
+import { MixDOMDebug } from "../../../../classes";
 
 
 // - Component - //
@@ -94,6 +97,30 @@ export const UIAppTipDisplay: ComponentFunc<UIAppTipDisplayInfo> = (_props, comp
         };
     }
 
+    const renderDebugTip = () => wrapTip(<div>Click to open the nested host in its own debug window.</div>);
+    const onPressDebug = () => {
+        // Get host.
+        const host = comp.props.item.treeNode.def?.host;
+        if (!host)
+            return;
+        // Open window;
+		const wFeatures = "toolbar=0,scrollbars=0,location=0,resizable=1";
+		const w = window.open(undefined, "_blank", wFeatures) as Window & { MixDOMDebug: MixDOMDebug; };
+        // Set up.
+		if (w) {
+			// Note. We can use "beforeunload" to call a func inside, because we're doing it outside of the window.
+			w.addEventListener("beforeunload", () => { w.MixDOMDebug && w.MixDOMDebug.stopDebug(); } );
+            // Set the same base script.
+            const scriptRef = [...document.body.children].find(el => el.tagName === "SCRIPT" && el.getAttribute("src")?.endsWith("MixDOMDebug.js"))
+            const script = w.document.createElement("script");
+            script.setAttribute("type", "text/javascript");
+            script.setAttribute("src", scriptRef ? scriptRef.getAttribute("src")! : "https://unpkg.com/mix-dom-debug/MixDOMDebug.js");
+            // Loader.
+            script.addEventListener("load", () => w.MixDOMDebug && w.setTimeout(() => w.MixDOMDebug.startDebug(host, comp.props.debugInfo), 1));
+            w.document.body.appendChild(script);
+		}
+    };
+
     const sProps = getSnippetContainerProps();
     const onTipEnter = () => comp.props.rowMode === "select-tip" && comp.state.isAlive && comp.props.onTipPresence && comp.props.onTipPresence(comp.state.history[comp.state.iHistory].treeNode, "popup", true);
     const onTipLeave = () => comp.props.rowMode === "select-tip" && comp.state.isAlive && comp.props.onTipPresence && comp.props.onTipPresence(comp.state.history[comp.state.iHistory].treeNode, "popup", false);
@@ -108,19 +135,27 @@ export const UIAppTipDisplay: ComponentFunc<UIAppTipDisplayInfo> = (_props, comp
         let domContentStr = MixDOM.readDOMString(treeNode, false, 0, null);
         switch(treeNode.type) {
             case "dom": {
-                // Prepare.
-                const tag = treeNode.def.tag;
-                let tagStr = "";
-                // Text node.
-                if (!tag) {
-                    if (domContentStr)
-                        domContentStr = '"' + domContentStr + '"';
-                }
-                // Normal nodes.
-                else
-                    tagStr = item.description;
                 // Content.
-                headingContent = <UIAppTipHeading title={tag ? (treeNode.domNode && treeNode.domNode["ownerSVGElement"] !== undefined ? "SVG" : "HTML") + " element" : "Text node"} extraTitle={<Prettify code={tagStr ? escapeHTML(tagStr) : item.description} className="layout-padding-l layout-inline-block" />} {...getHeadingProps()} />
+                let tagStr = "";
+                let title: string;
+                switch(getItemTypeFrom(treeNode)) {
+                    case "dom-text":
+                        title = "Text node";
+                        break;
+                    case "dom-external":
+                        title = "External node";
+                        tagStr = item.description;
+                        break;
+                    case "dom-pseudo":
+                        title = "Pseudo element";
+                        tagStr = item.description;
+                        break;
+                    default:
+                        title = (treeNode.domNode && treeNode.domNode["ownerSVGElement"] !== undefined ? "SVG" : "HTML") + " element";
+                        tagStr = item.description;
+                        break;
+                }
+                headingContent = <UIAppTipHeading title={title} extraTitle={<Prettify code={tagStr ? escapeHTML(tagStr) : item.description} className="layout-padding-l layout-inline-block" />} {...getHeadingProps()} />
                 break;
             }
             case "boundary": {
@@ -147,22 +182,26 @@ export const UIAppTipDisplay: ComponentFunc<UIAppTipDisplayInfo> = (_props, comp
             case "root": {
                 showRenderedBy = false;
                 headingContent = (
-                    <UIAppTipHeading title="Root container" extraTitle={item.description ? <Prettify code={escapeHTML(item.description)} className="layout-padding-l layout-border-box" /> : null} {...getHeadingProps()} >
+                    <UIAppTipHeading title={<span class="layout-padding-l-x layout-padding-m-y layout-inline-block">Root container</span>} extraTitle={item.description ? <Prettify code={escapeHTML(item.description)} className="layout-padding-l layout-border-box layout-inline-block" /> : undefined} afterTitle={item.description ? undefined : <span class="style-text-small">{item.treeNode.parent ? "(element inherited)" : "(no element)"}</span>} {...getHeadingProps()} >
                         <ul class="style-ui-list">
-                            <li>Contains the debugged host.</li>
+                            <li>Element that contains the {props.item.level ? "nested" : "debugged"} host.</li>
                         </ul>
                     </UIAppTipHeading>
                 );
+                const hostSettings = treeNode.children[0]?.boundary?.host.settings;
+                preContent = hostSettings ? <UIAppTipSection _key="settings" type="settings" title="Host settings" debugInfo={props.debugInfo} debugTarget={hostSettings} ><RenderPartList portion={hostSettings || {}} /></UIAppTipSection> : null;
                 break;
             }
             case "host": {
                 headingContent = (
-                    <UIAppTipHeading title="Nested host" {...getHeadingProps()} >
+                    <UIAppTipHeading title={<span class="layout-padding-l-x layout-padding-m-y layout-inline-block">Nested host</span>} {...getHeadingProps()} >
                         <ul class="style-ui-list">
-                            <li>Contains another host instance.</li>
+                            <li>Contains another host instance. <UIAppButton look="edge" onPress={onPressDebug} renderTip={renderDebugTip}>Open in debug</UIAppButton></li>
                         </ul>
                     </UIAppTipHeading>
                 );
+                const hostSettings = treeNode.def.host?.settings;
+                preContent = <UIAppTipSection _key="settings" type="settings" title="Host settings" debugInfo={props.debugInfo} debugTarget={hostSettings} ><RenderPartList portion={hostSettings || {}} /></UIAppTipSection>;
                 const host = (treeNode as MixDOMTreeNodeHost).def.host;
                 domContentStr = host && host.groundedTree.children[0] ? MixDOM.readDOMString(host.groundedTree.children[0], false, 0, null) : "";
                 break;
@@ -175,14 +214,20 @@ export const UIAppTipDisplay: ComponentFunc<UIAppTipDisplayInfo> = (_props, comp
                     {treeNode.boundary?.innerBoundaries[0] ? <UIAppTipSection _key="children" type="children" title="Inner components"><RenderComponentChildren treeNode={treeNode} onItemLink={props.onItemLink}/></UIAppTipSection> : null}
                 </>;
                 break;
-            case "portal":
+            case "portal": {
+                const prettyPortal = <Prettify code={escapeHTML(item.description)} className="layout-padding-l layout-border-box layout-inline-block" />;
                 headingContent = (
-                    <UIAppTipHeading title="Portal container" afterTitle={<Prettify code={escapeHTML(item.description)} className="layout-padding-l layout-border-box" />} {...getHeadingProps()} />
+                    <UIAppTipHeading title={<span class="layout-padding-l-x layout-padding-m-y layout-inline-block">Portal</span>} afterLogTarget={item.treeNode?.domNode || null} afterTitle={<span class="style-color-dim"> to </span>} afterLogTitle={prettyPortal} {...getHeadingProps()}>
+                        <ul class="style-ui-list">
+                            <li>Portal allows to render content to another location in the DOM.</li>
+                        </ul>
+                    </UIAppTipHeading>
                 );
                 break;
+            }
             case "":
                 headingContent = (
-                    <UIAppTipHeading title={<span class="layout-padding-l layout-border-box">Empty</span>} {...getHeadingProps()} >
+                    <UIAppTipHeading title={<span class="layout-padding-l-x layout-padding-m-y layout-inline-block">Empty</span>} {...getHeadingProps()} >
                         <ul class="style-ui-list">
                             <li>Empty treeNodes should not typically end up in the grounded tree.</li>
                         </ul>
@@ -190,15 +235,20 @@ export const UIAppTipDisplay: ComponentFunc<UIAppTipDisplayInfo> = (_props, comp
                 );
                 break;
         }
+        // Clean up.
+        if (domContentStr && !domContentStr.trim().startsWith("<"))
+            // domContentStr = '"' + domContentStr.replace(/"/g, "&quot;") + '"';
+            domContentStr = JSON.stringify(domContentStr);
+        // Render.
         return <div class={classNames("style-ui-panel flex-col", sProps.className, state.isAlive ? "layout-auto-pointer" : "layout-no-pointer")} style={sProps.style} onMouseEnter={onTipEnter} onMouseLeave={onTipLeave} >
             {headingContent}
-            <div class="layout-scrollable style-scrollable flex-col layout-gap-m layout-padding-m">
+            <div class="layout-scrollable style-scrollable flex-col layout-gap-m layout-padding-m-x">
                 {preContent}
                 {showRenderedBy ? <RenderedByComponents treeNode={treeNode} iUpdate={props.iUpdate} onItemLink={props.onItemLink} /> : null}
                 {postContent}
                 {treeNode.type === "root" || !domContentStr ? null :
                     <UIAppTipSection type="renders" title="Renders in DOM" useDefaultLimits={false} >
-                        <PrettifyDelay origCode={domContentStr.replace(/\t/g, "    ")} prePrettifier={escapeHTML} tag="pre" {...getMiniScrollableProps()} />
+                        <PrettifyDelay origCode={domContentStr.replace(/\t/g, "    ")} prePrettifier={escapeHTML} tag="pre" {...getMiniScrollableProps("layout-padding-l")} />
                     </UIAppTipSection>
                 }
             </div>

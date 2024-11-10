@@ -79,7 +79,7 @@ export const UIPopupContents = MixDOM.component<{props: UIPopupContentsProps; st
 	return (props, state) => {
 		refreshPos({ getContainerRect: props.getContainerRect, getElement: props.getElement, elementMargin: props.elementMargin, hAlign: props.hAlign, vAlign: props.vAlign, refreshId: state.refreshId });
 		return (
-			<div class={classNames("ui-popup-contents layout-fit-size", props.className)} style={props.style} _signals={{ domDidMount }} >
+			<div class={classNames("ui-popup-contents layout-abs-fill", props.className)} style={props.style} _signals={{ domDidMount }} >
 				<UIFitBox offset={offset} getContainerRect={updateGetContainerRect(props.getContainerRect) } align={align} margin={props.margin} >
 					<div class={classNames("popup-content", props.contentClassName)} style={props.contentStyle} >
 						{MixDOM.Content}

@@ -5,9 +5,9 @@
 import { classNames, CSSProperties, readDOMString } from "dom-types";
 import { createMemo } from "data-memo";
 import { SignalListenerFlags } from "data-signals";
-import { MixDOM, Host, ComponentCtxFunc, hasContentInDefs, MixDOMTreeNode, ComponentTypeWith, PseudoPortalProps } from "mix-dom";
+import { MixDOM, Host, ComponentCtxFunc, hasContentInDefs, MixDOMTreeNode, ComponentTypeWith, PseudoPortalProps, SourceBoundary } from "mix-dom";
 // Common.
-import { flattenTreeWith, AppContexts, DebugTreeItem, HostDebugLive, HostDebugSettings, consoleLog } from "../../../common/index";
+import { flattenTreeWith, AppContexts, DebugTreeItem, HostDebugLive, HostDebugSettings, consoleLog, DebugTreeItemType, getItemTypeFrom, getPassPhaseAndSource } from "../../../common/index";
 // UI library.
 import { UIList, UIVirtualListInfo } from "../../library/index";
 // Local.
@@ -19,15 +19,19 @@ import { UIAppShowTip } from "./tree/UIAppShowTip";
 
 type Item = UIAppTreeItemInfo["props"]["item"];
 
-const itemFilterTypeStrings: Record<Item["treeNode"]["type"] | "pass-remote", string> = {
-    "boundary": "[boundary]",
-    "dom": "[dom]",
+const itemFilterTypeStrings: Record<DebugTreeItemType | "pass-remote", string> = {
+    "component": "[component]",
     "root": "[root] root container",
     "host": "[host] nested host",
     "pass": "[pass] content pass from",
     "pass-remote": "[pass] remote pass from",
     "portal": "[portal] portal to",
-    "": "[empty]",
+    "empty": "[empty]",
+    "dom": "[dom]",
+    "dom-element": "[dom] [dom-element]",
+    "dom-text": "[dom] [dom-text]",
+    "dom-external": "[dom] [dom-external]",
+    "dom-pseudo": "[dom] [dom-pseudo]",
 };
 
 function getDocBodyBy(treeNode: MixDOMTreeNode): HTMLElement | null {
@@ -41,7 +45,7 @@ function getDocBodyBy(treeNode: MixDOMTreeNode): HTMLElement | null {
 }
 
 function matchesFilter(item: Item, filterSplits: string[][]): boolean {
-    return (filterSplits && filterSplits.some(splits => splits.every(s => item.name.toLowerCase().includes(s) || item.description.toLowerCase().includes(s) || ((itemFilterTypeStrings[item.treeNode.def?.getRemote ? "pass-remote" : item.treeNode.type] || "").includes(s)))))
+    return (filterSplits && filterSplits.some(splits => splits.every(s => item.name.toLowerCase().includes(s) || item.description.toLowerCase().includes(s) || ((itemFilterTypeStrings[item.treeNode.def?.getRemote ? "pass-remote" : getItemTypeFrom(item.treeNode)] || "").includes(s)))))
 }
 
 function isItemWithinCollapsed(item: Item, collapsed: Item["id"][]): boolean {
@@ -226,6 +230,12 @@ export const UIAppHostTree: ComponentCtxFunc<UIAppHostTreeInfo> = function Debug
             let description = "";
             let name = "";
             switch(treeNode.type) {
+                case "pass": {
+                    let sBoundary: SourceBoundary | null;
+                    [name, sBoundary] = getPassPhaseAndSource(treeNode);
+                    description = sBoundary ? sBoundary._outerDef.tag.name || "Anonymous" : "";
+                    break;
+                }
                 case "boundary":
                     // id = "boundary:" + treeNode.boundary.bId;
                     name = treeNode.def.tag ? treeNode.def.tag.name : "";
@@ -233,22 +243,40 @@ export const UIAppHostTree: ComponentCtxFunc<UIAppHostTreeInfo> = function Debug
                     break;
                 case "dom": {
                     name = treeNode.def.tag || "";
-                    
-                    const tag = treeNode.def.tag;
-                    const contentStr = typeof treeNode.def.domContent === "string" ? '"' + treeNode.def.domContent + '"' : undefined;
-                    const hasKids = !!(tag && treeNode.children[0] && hasContentInDefs(treeNode.def.childDefs)); // <-- Check more deeply. To skip empty passes.
-                    description = readDOMString(tag, treeNode.def.props, hasKids ? null : contentStr );
-                    if (hasKids)
+                    let tagStr = "";
+                    let keepTagOpen = false;
+                    let contentStr = "";
+                    let readFromNode: Node | null | undefined = undefined;
+                    switch(getItemTypeFrom(treeNode)) {
+                        case "dom-external":
+                            keepTagOpen = true;
+                            readFromNode = treeNode.def.domContent as Node;
+                            break;
+                        case "dom-pseudo":
+                            keepTagOpen = true;
+                            readFromNode = treeNode.def.domElement;
+                            break;
+                        case "dom-text":
+                            // contentStr = treeNode.def.domContent == null ? "" : typeof treeNode.def.domContent === "string" ? '"' + treeNode.def.domContent.replace(/"/g, "&quot;") + '"' : treeNode.def.domContent.toString();
+                            contentStr = treeNode.def.domContent == null ? "" : typeof treeNode.def.domContent === "string" ? JSON.stringify(treeNode.def.domContent) : treeNode.def.domContent.toString();
+                            // <-- Actually depends on host settings, whether ignores some more.
+                            break;
+                        default:
+                            tagStr = treeNode.def.tag;
+                            keepTagOpen = !!(tagStr && treeNode.children[0]); // && hasContentInDefs(treeNode.def.childDefs)); // Let's check more deeply - to skip empty passes.
+                            break;
+                    }
+                    // Generate description.
+                    description = readDOMString(tagStr, treeNode.def.props, keepTagOpen ? null : contentStr, readFromNode);
+                    if (keepTagOpen)
                         description = description.replace("/>", ">");
                     break;
                 }
                 case "root": {
                     const el = treeNode.domNode as HTMLElement | null;
-                    name = el ? el.tagName.toLowerCase() : "";
-                    if (el) {
-                        const tag = name;
-                        description = readDOMString(tag, null, false, el).replace("/>", ">");
-                    }
+                    name = "Root";
+                    if (el)
+                        description = readDOMString(el ? el.tagName.toLowerCase() : "", null, false, el).replace("/>", ">");
                     break;
                 }
                 case "host":
@@ -319,7 +347,7 @@ export const UIAppHostTree: ComponentCtxFunc<UIAppHostTreeInfo> = function Debug
         setCollapsed(findItemsIdsBy(item, mode || "self", comp.state.collapsed, allItems.filter(item => item.children && item.children[0] !== undefined)));
     };
 
-    const toggleConcept = (concept: MixDOMTreeNode["type"], reset?: boolean) => {
+    const toggleConcept = (concept: DebugTreeItemType, reset?: boolean) => {
         // Prepare.
         let filter = cApi.getInData("settings.filter", "");
         const cStr = "[" + concept + "]";
@@ -328,7 +356,7 @@ export const UIAppHostTree: ComponentCtxFunc<UIAppHostTreeInfo> = function Debug
         const iAlready = lowSplits.findIndex(s => s === cStr);
         // Reset.
         if (reset) {
-            const allConcepts = (["boundary", "dom", "host", "pass", "portal", "root", ""] satisfies MixDOMTreeNode["type"][]).map(s => "[" + s + "]");
+            const allConcepts = (["component", "dom", "dom-element", "dom-text", "dom-external", "dom-pseudo", "host", "pass", "portal", "root", "empty"] satisfies DebugTreeItemType[]).map(s => "[" + s + "]");
             // Remove all concepts, except this.
             const allExcept = lowSplits.filter(s => !allConcepts.includes(s) || s === cStr);
             // If already equal, add/remove this.
@@ -669,11 +697,8 @@ export const UIAppHostTree: ComponentCtxFunc<UIAppHostTreeInfo> = function Debug
 
     const Wired = MixDOM.wired<{ item: Item; }, CommonProps>(
         // Builder.
-        () => {
-            return getCommonProps(comp.state.debugSettings, comp.state.debugLive?.iUpdate, comp.state.rowMode);
-        },
+        () => getCommonProps(comp.state.debugSettings, comp.state.debugLive?.iUpdate, comp.state.rowMode),
         // Mixer.
-        // null,
         (parentProps, buildProps, _wired) => {
             const item = parentProps.item;
             const collapsable = item.children && item.children[0] !== undefined;
@@ -696,7 +721,7 @@ export const UIAppHostTree: ComponentCtxFunc<UIAppHostTreeInfo> = function Debug
     
     // - Before update - //
 
-    comp.listenTo("beforeUpdate", () => {
+    const beforeUpdate = () => {
         // Pre.
         let mWas = matchedItems;
         // Update.
@@ -707,12 +732,15 @@ export const UIAppHostTree: ComponentCtxFunc<UIAppHostTreeInfo> = function Debug
         // In case changed.
         if (mWas !== matchedItems && shouldSelectWas !== whetherShouldSelect())
             cApi.setInData("settings.shouldSelect", shouldSelectWas = !shouldSelectWas);
-    });
+    };
+    comp.listenTo("beforeUpdate", beforeUpdate);
 
 
     // - Render - //
 
     return (props, state) => {
+        // Prepare.
+        beforeUpdate();
         // Render.
         return <div class={classNames("ui-app-host-tree layout-fit-size", props.className)} style={props.style}>
             <div class="flex-row flex-align-items-center layout-fit-size">

@@ -78,7 +78,7 @@ body {
 /* - - Common look: style-ui-panel - - */
 
 .style-ui-panel {
-    padding: var(--layout-gap-m);
+    padding: var(--layout-gap-l);
     border-radius: var(--layout-radius-m);
     border-width: var(--layout-edge-s);
     border-style: solid;
@@ -88,6 +88,7 @@ body {
 }
 
 .style-ui-mini-panel {
+    margin: var(--layout-gap-m);
     background: var(--color-fill-main);
     border-radius: var(--layout-radius-s);
     border: var(--layout-edge-s) solid var(--color-overlay-mid-m);
@@ -305,6 +306,9 @@ body {
 
 /* - - Common look: style-ui-list - - */
 
+.style-ui-list {
+    padding: var(--layout-gap-s);
+}
 .style-ui-list > li {
     margin: var(--layout-gap-s);
     padding: var(--layout-gap-s) var(--layout-gap-m);
@@ -316,7 +320,6 @@ body {
 .style-ui-code {
     font-size: var(--layout-font-s);
     padding: var(--layout-gap-m);
-    background-color: var(--color-app-bg-ui-code);
 }
 
 
@@ -324,6 +327,7 @@ body {
 
 .style-ui-focusable.style-ui-concept,
 .style-ui-concept {
+    flex-shrink: 0;
     font-weight: bold;
     font-size: 15px; /* TEST..! */
     padding: var(--layout-gap-s) var(--layout-gap-m);
@@ -354,22 +358,39 @@ body {
 .style-stroke-app-type-host {
     color: var(--color-fill-app-type-host);
 }
-.style-ui-focusable.style-stroke-app-type-boundary,
-.style-stroke-app-type-boundary {
-    color: var(--color-fill-app-type-boundary);
+.style-ui-focusable.style-stroke-app-type-component,
+.style-stroke-app-type-component {
+    color: var(--color-fill-app-type-component);
 }
 .style-ui-focusable.style-stroke-app-type-pass,
 .style-stroke-app-type-pass {
     color: var(--color-fill-app-type-pass);
 }
-.style-ui-focusable.style-stroke-app-type-dom,
-.style-stroke-app-type-dom {
-    color: var(--color-fill-app-type-dom);
-}
 .style-ui-focusable.style-stroke-app-type-portal,
 .style-stroke-app-type-portal {
     color: var(--color-fill-app-type-portal);
 }
+.style-ui-focusable.style-stroke-app-type-dom,
+.style-stroke-app-type-dom {
+    color: var(--color-fill-app-type-dom);
+}
+.style-ui-focusable.style-stroke-app-type-dom-element,
+.style-stroke-app-type-dom-element {
+    color: var(--color-fill-app-type-dom-element);
+}
+.style-ui-focusable.style-stroke-app-type-dom-text,
+.style-stroke-app-type-dom-text {
+    color: var(--color-fill-app-type-dom-text);
+}
+.style-ui-focusable.style-stroke-app-type-dom-external,
+.style-stroke-app-type-dom-external {
+    color: var(--color-fill-app-type-dom-external);
+}
+.style-ui-focusable.style-stroke-app-type-dom-pseudo,
+.style-stroke-app-type-dom-pseudo {
+    color: var(--color-fill-app-type-dom-pseudo);
+}
+
 .style-ui-focusable.style-fill-app-type-empty,
 .style-fill-app-type-empty {
     background-color: var(--color-fill-app-type-empty);
@@ -382,42 +403,63 @@ body {
 .style-fill-app-type-host {
     background-color: var(--color-fill-app-type-host);
 }
-.style-ui-focusable.style-fill-app-type-boundary,
-.style-fill-app-type-boundary {
-    background-color: var(--color-fill-app-type-boundary);
+.style-ui-focusable.style-fill-app-type-component,
+.style-fill-app-type-component {
+    background-color: var(--color-fill-app-type-component);
 }
 .style-ui-focusable.style-fill-app-type-pass,
 .style-fill-app-type-pass {
     background-color: var(--color-fill-app-type-pass);
 }
-.style-ui-focusable.style-fill-app-type-dom,
-.style-fill-app-type-dom {
-    background-color: var(--color-fill-app-type-dom);
-}
 .style-ui-focusable.style-fill-app-type-portal,
 .style-fill-app-type-portal {
     background-color: var(--color-fill-app-type-portal);
 }
+.style-ui-focusable.style-fill-app-type-dom,
+.style-fill-app-type-dom {
+    background-color: var(--color-fill-app-type-dom);
+}
+.style-ui-focusable.style-fill-app-type-dom-element,
+.style-fill-app-type-dom-element {
+    background-color: var(--color-fill-app-type-dom-element);
+}
+.style-ui-focusable.style-fill-app-type-dom-text,
+.style-fill-app-type-dom-text {
+    background-color: var(--color-fill-app-type-dom-text);
+}
+.style-ui-focusable.style-fill-app-type-dom-external,
+.style-fill-app-type-dom-external {
+    background-color: var(--color-fill-app-type-dom-external);
+}
+.style-ui-focusable.style-fill-app-type-dom-pseudo,
+.style-fill-app-type-dom-pseudo {
+    background-color: var(--color-fill-app-type-dom-pseudo);
+}
+
 
 :root .color-theme-dark {
-    --color-fill-app-type-empty: #3d3d3d;
-    --color-fill-app-type-root: #666;
-    --color-fill-app-type-host: #9b9c58;
-    --color-fill-app-type-boundary: #3c5d8c;
+    --color-fill-app-type-empty: #555;
+    --color-fill-app-type-root: #999;
+    --color-fill-app-type-host: #97794d;
+    --color-fill-app-type-component: #3c5d8c;
     --color-fill-app-type-pass: #6f7da3;
-    --color-fill-app-type-dom: #599761;
     --color-fill-app-type-portal: #96749a;
-
-    --color-app-bg-ui-code: #333339;
+    --color-fill-app-type-dom: #7da667;
+    --color-fill-app-type-dom-text: #909d5c;
+    --color-fill-app-type-dom-element: #599761;
+    --color-fill-app-type-dom-external: #2d7f5e;
+    --color-fill-app-type-dom-pseudo: #73b5a0;
 }
 :root .color-theme-light {
-    --color-fill-app-type-empty: #aaa;
+    --color-fill-app-type-empty: #999;
     --color-fill-app-type-root: #666;
-    --color-fill-app-type-host: #9b9c58;
-    --color-fill-app-type-boundary: #4d76af;
+    --color-fill-app-type-host: #bb8d5d;
+    --color-fill-app-type-component: #4d76af;
     --color-fill-app-type-pass: #6f7da3;
-    --color-fill-app-type-dom: #6fab7d;
     --color-fill-app-type-portal: #96749a;
-
-    --color-app-bg-ui-code: #333339;
+    --color-fill-app-type-dom: #82be67;
+    --color-fill-app-type-dom-text: #91a24d;
+    --color-fill-app-type-dom-element: #5da366;
+    --color-fill-app-type-dom-external: #2d7f5e;
+    --color-fill-app-type-dom-pseudo: #59b7a4;
 }

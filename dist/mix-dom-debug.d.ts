@@ -1,5 +1,5 @@
 import * as mix_dom from 'mix-dom';
-import { Host, MixDOMTreeNode, MixDOMTreeNodeType, MixDOMDefTarget, MixDOMRenderOutput, ComponentRemoteType, ComponentTypeEither, Ref, ComponentTypeWith, ComponentProps, ComponentWith, ComponentFuncReturn, ComponentFunc, ComponentWiredFunc, MixDOMProps, Component, ComponentCtxFunc } from 'mix-dom';
+import { Host, MixDOMTreeNode, MixDOMTreeNodeType, MixDOMDefTarget, MixDOMTreeNodePass, SourceBoundary, MixDOMRenderOutput, ComponentRemoteType, ComponentTypeEither, Ref, ComponentTypeWith, ComponentProps, ComponentWith, ComponentFuncReturn, ComponentFunc, ComponentWiredFunc, MixDOMProps, Component, ComponentCtxFunc } from 'mix-dom';
 import { ClassType } from 'mixin-types';
 import { Context } from 'data-signals';
 import * as dom_types from 'dom-types';
@@ -25,7 +25,7 @@ type DebugContextSignals = {
     domFocus: (treeNode: MixDOMTreeNode | null) => void;
 };
 type DebugContext = Context<DebugContextData, DebugContextSignals>;
-declare const allTipSectionNames: readonly ["heading", "code", "props", "state", "contexts", "rendered-by", "wired", "remote", "children", "renders"];
+declare const allTipSectionNames: readonly ["heading", "code", "props", "state", "contexts", "settings", "rendered-by", "wired", "remote", "children", "renders"];
 type TipSectionNames = typeof allTipSectionNames[number];
 type SettingsContextData = {
     theme: "dark" | "light";
@@ -61,7 +61,7 @@ type AppContexts = {
 interface TreeListItem<Item extends TreeListItem = any> {
     children?: Item[];
 }
-type DebugTreeItemType = MixDOMTreeNodeType | "";
+type DebugTreeItemType = Exclude<MixDOMTreeNodeType, "boundary"> | "component" | "empty" | "dom-element" | "dom-text" | "dom-external" | "dom-pseudo";
 interface DebugTreeItem extends TreeListItem<DebugTreeItem> {
     id: MixDOMTreeNode;
     treeNode: MixDOMTreeNode;
@@ -108,14 +108,16 @@ declare class MixDOMDebug {
     /** Stop debugging the current host, if has one. */
     static stopDebug: () => void;
     /** Start debugging the given host. */
-    static startDebug: (host: Host, settings?: Partial<HostDebugSettings>) => MixDOMDebug;
+    static startDebug: (host: Host, settings?: Partial<HostDebugSettings> | null) => MixDOMDebug;
 }
 
 /** Current app version. */
-declare const appVersion: "0.3.6";
+declare const appVersion: "0.4.7";
 
 declare const appIcons: Record<IconNames, MixDOMDefTarget | null>;
 
+declare function getItemTypeFrom(treeNode: MixDOMTreeNode): DebugTreeItemType;
+declare function getPassPhaseAndSource(treeNode: MixDOMTreeNodePass): [phrase: string, sBoundary: SourceBoundary | null];
 declare function consoleLog(debugInfo: HostDebugSettings | null | undefined, ...args: any[]): void;
 declare const wrapTip: (...contents: MixDOMRenderOutput[]) => mix_dom.MixDOMDefTarget | null;
 declare function computeSnappedValue(snapStep: number, value: number): number;
@@ -431,7 +433,7 @@ interface UIAppTreeItemInfo {
         dimmed?: boolean;
         toggleCollapsed?: (item: DebugTreeItem, mode?: "level" | "siblings" | "parents" | "chain" | "reset" | "self") => void;
         toggleSelected?: (item: DebugTreeItem, mode?: "level" | "siblings" | "parents" | "chain" | "reset" | "self") => void;
-        toggleConcept?: (concept: MixDOMTreeNode["type"], reset?: boolean) => void;
+        toggleConcept?: (concept: DebugTreeItemType, reset?: boolean) => void;
         onToggleTip?: (id: DebugTreeItem["id"]) => void;
         onTipPresence?: (treeNode: DebugTreeItem["id"], type: "hoverable" | "popup", present: boolean) => void;
         /** In "tip" mode clicking the row toggles the tip. In "select" clicking the row does selection. In "select-tip", clicking does selection, but hovering the row provides tip. */
@@ -515,4 +517,4 @@ interface UIAppInfo {
 }
 declare const UIApp: ComponentCtxFunc$1<UIAppInfo>;
 
-export { Align, AppContexts, ArrLikePropsOf, DebugContext, DebugContextData, DebugContextSignals, DebugTreeItem, DebugTreeItemType, FitBoxAlgoritms, FitLocks, FittingAlgoritm, HAlign, HostDebugLive, HostDebugSettings, IconNames, Margin, MarginSides, MixDOMDebug, MixDOMDebugType, MixHoverSignal, MixHoverSignalInfo, MixOnEscape, MixOnEscapeInfo, MixPositionedPopup, MixPositionedPopupInfo, Offset, Rect, SettingsContext, SettingsContextData, SettingsContextSignals, Size, TipSectionNames, TreeListItem, UIApp, UIAppButton, UIAppButtonProps, UIAppHostTree, UIAppHostTreeInfo, UIAppIcon, UIAppIconProps, UIAppInfo, UIAppInput, UIAppInputProps, UIAppTip, UIAppTipInfo, UIAppTipRemote, UIAppTopBar, UIAppTopBarInfo, UIAppTreeItem, UIAppTreeItemInfo, UIFitBox, UIFitBoxInfo, UIFitBoxProps, UIList, UIListInfo, UIPopupContainer, UIPopupContainerProps, UIPopupContents, UIPopupContentsAlignProps, UIPopupContentsProps, UITreeNodeType, UITreeNodeTypeInfo, UIVirtualList, UIVirtualListInfo, UIVirtualRow, UIVirtualRowProps, VAlign, allTipSectionNames, appIcons, appVersion, cleanMargin, computeSnappedValue, consoleLog, flattenTree, flattenTreeWith, wrapTip };
+export { Align, AppContexts, ArrLikePropsOf, DebugContext, DebugContextData, DebugContextSignals, DebugTreeItem, DebugTreeItemType, FitBoxAlgoritms, FitLocks, FittingAlgoritm, HAlign, HostDebugLive, HostDebugSettings, IconNames, Margin, MarginSides, MixDOMDebug, MixDOMDebugType, MixHoverSignal, MixHoverSignalInfo, MixOnEscape, MixOnEscapeInfo, MixPositionedPopup, MixPositionedPopupInfo, Offset, Rect, SettingsContext, SettingsContextData, SettingsContextSignals, Size, TipSectionNames, TreeListItem, UIApp, UIAppButton, UIAppButtonProps, UIAppHostTree, UIAppHostTreeInfo, UIAppIcon, UIAppIconProps, UIAppInfo, UIAppInput, UIAppInputProps, UIAppTip, UIAppTipInfo, UIAppTipRemote, UIAppTopBar, UIAppTopBarInfo, UIAppTreeItem, UIAppTreeItemInfo, UIFitBox, UIFitBoxInfo, UIFitBoxProps, UIList, UIListInfo, UIPopupContainer, UIPopupContainerProps, UIPopupContents, UIPopupContentsAlignProps, UIPopupContentsProps, UITreeNodeType, UITreeNodeTypeInfo, UIVirtualList, UIVirtualListInfo, UIVirtualRow, UIVirtualRowProps, VAlign, allTipSectionNames, appIcons, appVersion, cleanMargin, computeSnappedValue, consoleLog, flattenTree, flattenTreeWith, getItemTypeFrom, getPassPhaseAndSource, wrapTip };

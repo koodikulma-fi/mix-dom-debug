@@ -5,7 +5,7 @@
 import { classNames } from "dom-types";
 import { MixDOM, MixDOMRenderOutput, ComponentFunc } from "mix-dom";
 // Common.
-import { DebugTreeItem, wrapTip } from "../../../../common/index";
+import { DebugTreeItem, getItemTypeFrom, wrapTip } from "../../../../common/index";
 // App UI common.
 import { UIAppButton } from "../../common/index";
 // Local.
@@ -33,7 +33,7 @@ export interface UITreeNodeTypeInfo {
 export const UITreeNodeType: ComponentFunc<UITreeNodeTypeInfo> = (_props, comp) => {
 
     const renderConceptTip = (): MixDOMRenderOutput =>
-        wrapTip(<div>Filter by view by treeNode type: <b>{comp.props.item.treeNode.type || "empty"}</b>.<br/> - Click with <b>Ctrl</b>/<b>Alt</b> to only filter this type.</div>);
+        wrapTip(<div>Filter by view by type: <b>{getItemTypeFrom(comp.props.item.treeNode)}</b>.<br/> - Click with <b>Ctrl</b>/<b>Alt</b> to only filter this type.</div>);
 
     let mouseDownInfo: [clientX: number, clientY: number] | null = null;
     const onRowClick = (e: MouseEvent | KeyboardEvent) => {
@@ -68,7 +68,6 @@ export const UITreeNodeType: ComponentFunc<UITreeNodeTypeInfo> = (_props, comp) 
         const item = props.item;
         const treeNode = item.treeNode;
 
-        let type = treeNode.type;
         let description: MixDOMRenderOutput = null;
 
         // By type.
@@ -104,6 +103,8 @@ export const UITreeNodeType: ComponentFunc<UITreeNodeTypeInfo> = (_props, comp) 
                 break;
         }
 
+        // Render.
+        const subType = getItemTypeFrom(treeNode);
         return <div class={classNames("flex-row flex-align-items-center flex-grow layout-overflow-hidden layout-gap-m layout-fit-height", props.className)}>
             <span
                 class={classNames("description layout-fit-height flex-row flex-align-items-center flex-grow layout-overflow-hidden", props.displayClassName)}
@@ -114,7 +115,7 @@ export const UITreeNodeType: ComponentFunc<UITreeNodeTypeInfo> = (_props, comp) 
             >
                 <div class="layout-gap-m flex-row flex-align-items-baseline flex-grow layout-overflow-hidden">{description}</div>
             </span>
-            <UIAppButton look="filled" className={classNames("type style-ui-concept style-fill-app-type-" + type, props.conceptClassName)} onPress={props.onSelectConcept} renderTip={renderConceptTip} >{type || "empty"}</UIAppButton>
+            <UIAppButton look="filled" className={classNames("type style-ui-concept style-fill-app-type-" + subType, props.conceptClassName)} onPress={props.onSelectConcept} renderTip={renderConceptTip} >{subType}</UIAppButton>
         </div>;
     }
 }

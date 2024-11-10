@@ -106,11 +106,15 @@ export interface UIAppTipHeadingInfo {
         title: MixDOMRenderOutput;
         extraTitle?: MixDOMRenderOutput;
         afterTitle?: MixDOMRenderOutput;
+        afterLogTitle?: MixDOMRenderOutput;
+        afterLogTarget?: object | null;
         /** If gives extraTitle or afterTitle defaults to true. Otherwise false. */
         useOverflow?: boolean;
         /** If provided with onItemLink, then wraps extraTitle or title as a scroll-to-link. */
         idToScroll?: DebugTreeItem["id"];
         onItemLink?: OnItemLink;
+        /** Needed for afterLogTarget. */
+        debugInfo?: HostDebugSettings;
         /** Defaults to true. */
         useDefaultLimits?: boolean;
         // History.
@@ -125,6 +129,9 @@ export const UIAppTipHeading: ComponentFunc<UIAppTipHeadingInfo> = (_props, comp
     const onPressLink = (e: MouseEvent | KeyboardEvent) => {
         comp.props.onItemLink && comp.props.idToScroll !== undefined && comp.props.onItemLink(comp.props.idToScroll, e.shiftKey ? "log" : e.ctrlKey || e.altKey || e.metaKey ? "details" : "focus");
     };
+    const onPressTargetLog = (e: MouseEvent | KeyboardEvent) => {
+        consoleLog(comp.props.debugInfo, "MixDOMDebug: Log element", comp.props.afterLogTarget);
+    };
     const onPressClose = (e: MouseEvent | KeyboardEvent) => {
         comp.props.onItemLink && comp.props.onItemLink(null, "details-break");
     };
@@ -138,7 +145,7 @@ export const UIAppTipHeading: ComponentFunc<UIAppTipHeadingInfo> = (_props, comp
     return (props) => {
         const useOverflow = props.useOverflow === undefined ? props.extraTitle !== undefined || props.afterTitle !== undefined : props.useOverflow;
         return (
-            <aside>
+            <aside class="layout-gap-m flex-col layout-padding-m-x layout-padding-l-y layout-padding-no-top">
                 <h2 class="style-ui-heading flex-row flex-align-items-baseline layout-gap-m">
                     {props.history && props.history[1] ?
                         props.history[2] ? 
@@ -149,13 +156,13 @@ export const UIAppTipHeading: ComponentFunc<UIAppTipHeadingInfo> = (_props, comp
                         <UIAppButton iconName={props.iHistory === 1 ? "back" : "forwards"} look="transparent" size="large" className="flex-align-self-center history-button" onPress={props.iHistory === 1 ? onHistoryPrev : onHistoryNext} /> :
                     null}
                     <span class="flex-grow"/>
-                    <span class={classNames("flex-row flex-align-items-baseline layout-gap-l", useOverflow && "style-text-ellipsis")}>
-                        <Title title={props.title} extraTitle={props.extraTitle} afterTitle={props.afterTitle} idToScroll={props.idToScroll} onPress={onPressLink} />
+                    <span class={classNames("flex-row layout-gap-l", props.extraTitle != null ? "flex-align-items-center" : "flex-align-items-baseline", useOverflow && "style-text-ellipsis")}>
+                        <Title title={props.title} extraTitle={props.extraTitle} afterTitle={props.afterTitle} afterLogTitle={props.afterLogTitle} idToScroll={props.idToScroll} onPress={onPressLink} onPressAfterLog={onPressTargetLog} />
                     </span>
                     <span class="flex-grow"/>
                     <UIAppButton iconName="close" look="transparent" size="large" className="flex-align-self-center" onPress={onPressClose} />
                 </h2>
-                <MixDOM.WithContent><div {...props.useDefaultLimits !== false ? getMiniScrollableProps("style-ui-mini-panel") : { className: "style-ui-mini-panel" }}>{MixDOM.Content}</div></MixDOM.WithContent>
+                <MixDOM.WithContent><div {...props.useDefaultLimits !== false ? getMiniScrollableProps("style-ui-mini-panel layout-margin-no-bottom") : { className: "style-ui-mini-panel layout-margin-no-bottom" }}>{MixDOM.Content}</div></MixDOM.WithContent>
             </aside>
         );
     }
@@ -168,19 +175,24 @@ function Title(props: {
     title: MixDOMRenderOutput;
     extraTitle?: MixDOMRenderOutput;
     afterTitle?: MixDOMRenderOutput;
+    afterLogTitle?: MixDOMRenderOutput;
     /** If provided with onItemLink, then wraps extraTitle or title as a scroll-to-link. */
     idToScroll?: DebugTreeItem["id"];
     onPress?: (e: MouseEvent | KeyboardEvent) => void;
+    onPressAfterLog?: (e: MouseEvent | KeyboardEvent) => void;
 }) {
+    const afterLogContent = props.afterLogTitle == null ? null : <UIAppButton look="edge" size="no" className="style-text-ellipsis" onPress={props.onPressAfterLog} renderTip={renderConsoleTip}>{props.afterLogTitle}</UIAppButton>;
     return props.idToScroll ?
         <>
-            {props.extraTitle !== undefined ? <>{props.title}{": "}</> : null}
+            {props.extraTitle !== undefined ? <span>{props.title}{": "}</span> : null}
             <UIAppButton look="edge" size="no" className="style-text-ellipsis" onPress={props.onPress} renderTip={renderComponentLinkTip}>{props.extraTitle !== undefined ? props.extraTitle : props.title}</UIAppButton>
             {props.afterTitle}
+            {afterLogContent}
         </> :
         <>
             {props.title}
             {props.extraTitle}
             {props.afterTitle}
+            {afterLogContent}
         </>;
 }

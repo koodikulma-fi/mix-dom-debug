@@ -36,7 +36,7 @@ export type DebugContextSignals = {
 };
 export type DebugContext = Context<DebugContextData, DebugContextSignals>;
 
-export const allTipSectionNames = ["heading", "code", "props", "state", "contexts", "rendered-by", "wired", "remote", "children", "renders"] as const;
+export const allTipSectionNames = ["heading", "code", "props", "state", "contexts", "settings", "rendered-by", "wired", "remote", "children", "renders"] as const;
 export type TipSectionNames = typeof allTipSectionNames[number];
 export type SettingsContextData = {
     theme: "dark" | "light";
@@ -80,7 +80,7 @@ export interface TreeListItem<Item extends TreeListItem = any> {
     // id: Item["id"];
     children?: Item[];
 }
-export type DebugTreeItemType = MixDOMTreeNodeType | "";
+export type DebugTreeItemType = Exclude<MixDOMTreeNodeType, "boundary"> | "component" | "empty" | "dom-element" | "dom-text" | "dom-external" | "dom-pseudo";
 export interface DebugTreeItem extends TreeListItem<DebugTreeItem> {
     id: MixDOMTreeNode;
     treeNode: MixDOMTreeNode;
