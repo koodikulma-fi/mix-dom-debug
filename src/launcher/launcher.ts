@@ -131,7 +131,6 @@ export function openMixDOMDebug(
     }
 }
 `;
-        doc.body.appendChild(elStyle);
 
         // Loading animation.
         const elLoadingIcon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
@@ -149,7 +148,8 @@ export function openMixDOMDebug(
 	<circle cx="384" cy="96" r="64" fill="currentColor" fill-opacity="1" />
 </svg>`;
         const elLoader = document.createElement("div");
-        elLoader.style.cssText = "display: flex; z-index: 10000; align-items: center; justify-content: center; position: absolute; background: #111; inset: 0; overflow: hidden; transition: opacity 300ms ease-in-out; opacity: 1;";
+        elLoader.style.cssText = "display: flex; z-index: 10000; align-items: center; justify-content: center; position: absolute; background: #111; inset: 0; overflow: hidden; transition: opacity 200ms ease-in-out; opacity: 1;";
+        elLoader.appendChild(elStyle);
         elLoader.appendChild(elLoadingIcon);
         doc.body.appendChild(elLoader);
         
@@ -165,7 +165,7 @@ export function openMixDOMDebug(
             setTimeout(() => {
                 elLoader.remove();
                 elStyle.remove();
-            }, 300);
+            }, 200);
             // We use `as any` as our typing is purposefully restricted.
             w.MixDOMDebug.startDebug(host as any, coreSettings, appState);
         });

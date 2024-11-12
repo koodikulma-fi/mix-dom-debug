@@ -132,6 +132,8 @@ export class MixDOMDebug {
             // Hook up.
             this.setHostListeners(host);
         }
+        else
+            this.refresh();
         // Set context data.
         this.contexts.debug.setData({ host, iUpdate: 0 });
         this.updateSettings(debugSettings, appState);
@@ -167,6 +169,8 @@ export class MixDOMDebug {
             if (includedSubHosts !== undefined)
                 this.contexts.state.sendSignalAs("delay", "modifySubHosts", includedSubHosts as Host[] | boolean);
         }
+        // Refresh in any case.
+        this.refresh();
     }
 
 
@@ -415,11 +419,11 @@ export class MixDOMDebug {
         const addToBody = scriptsSrcs.map(src => {
             if (existingScriptSrcs.includes(src))
                 return null;
+            nToLoad++;
             const script = doc.createElement("script");
             script.setAttribute("type", "text/javascript");
             script.setAttribute("src", src);
             script.onload = oneLoaded;
-            nToLoad++;
             return script;
         }).filter(s => s) as HTMLScriptElement[];
 
