@@ -86,8 +86,10 @@ export const UIAppInstructions: ComponentFunc<UIAppInstructionsInfo> = (_props, 
         let sections = comp.state.hiddenSections.slice();
         const iName = sections.indexOf(name);
         // Toggle.
-        if (solo)
-            sections = sections.length === 1 && iName !== -1 ? [] : (["instructions", "set-host", "using-launcher", "manual-launching", "render-app"] satisfies SectionNames[]).filter(n => n !== name);
+        if (solo) {
+            const allSections = ["instructions", "set-host", "using-launcher", "manual-launching", "render-app"] satisfies SectionNames[];
+            sections = sections.length === allSections.length - 1 && iName !== -1 ? [] : allSections.filter(n => n !== name);
+        }
         else
             iName === -1 ? sections.push(name) : sections.splice(iName, 1);
         // Set.
