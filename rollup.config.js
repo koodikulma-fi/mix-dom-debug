@@ -248,7 +248,7 @@ export default [
             //     transform: (contents, filename) => "if(!window[\"exports\"])window.exports={};" + contents.toString()
             // } ], hook: 'buildEnd' }),
 
-            del({ targets: ['dist/dts*', 'dist/classes*', 'dist/common*', 'dist/ui*', 'dist/launcher', 'dist/launcher/*', 'dist/index.js', 'dist/index_*.js'], hook: 'buildEnd' })
+            del({ targets: ['dist/dts*', 'dist/classes*', 'dist/common*', 'dist/ui*', 'dist/launcher', 'dist/launcher/*', 'dist/index.js', 'dist/index_*.js', 'dist/shared.js'], hook: 'buildEnd' })
 
         ],
     },
