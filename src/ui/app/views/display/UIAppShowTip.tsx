@@ -4,7 +4,7 @@
 // Libraries.
 import { Host, MixDOM, mixFuncsWith } from "mix-dom";
 // Common types.
-import { HostDebugSettings } from "../../../../shared";
+import type { HostDebugSettings } from "../../../../shared";
 import type { DebugTreeItem } from "../../../../common/index";
 // Common in UI.
 import { UIPopupContainerProps } from "../../../library/index";

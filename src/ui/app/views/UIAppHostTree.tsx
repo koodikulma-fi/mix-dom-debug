@@ -7,7 +7,7 @@ import { createMemo } from "data-memo";
 import { SignalListenerFlags } from "data-signals";
 import { MixDOM, Host, ComponentCtxFunc, MixDOMTreeNode, PseudoPortalProps, SourceBoundary, ComponentWith } from "mix-dom";
 // Common.
-import { HostDebugSettings } from "../../../shared";
+import type { HostDebugSettings } from "../../../shared";
 // Common in UI.
 import { flattenTreeWith, AppContexts, DebugTreeItem, DebugTreeItemType, getItemTypeFrom, getPassPhraseAndSource, consoleLogItem } from "../../../common/index";
 import { UIList, UIVirtualListInfo } from "../../library/index";

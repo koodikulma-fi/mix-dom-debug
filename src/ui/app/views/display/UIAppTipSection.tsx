@@ -5,7 +5,7 @@
 import { classNames } from "dom-types";
 import { MixDOM, MixDOMRenderOutput, ComponentFunc } from "mix-dom";
 // Common.
-import { HostDebugSettings, TipSectionNames } from "../../../../shared";
+import type { HostDebugSettings, TipSectionNames } from "../../../../shared";
 import { DebugTreeItem, AppContexts, consoleLog } from "../../../../common/index";
 // App UI common.
 import { UIAppButton, wrapTip } from "../../common/index";

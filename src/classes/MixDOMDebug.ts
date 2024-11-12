@@ -6,7 +6,7 @@ import { Context } from "data-signals";
 import { Host, MixDOMTreeNode, newDef } from "mix-dom";
 import { ClassType } from "mixin-types";
 // Common.
-import { HostDebugAppState, HostDebugAppStateUpdate, HostDebugSettings, HostDebugSettingsInit } from "../shared";
+import type { HostDebugAppState, HostDebugAppStateUpdate, HostDebugSettings, HostDebugSettingsInit } from "../shared";
 import { consoleLog, appVersion, DebugContextSignals, DebugContextData, AppContexts, StateContextData, StateContextSignals, consoleWarn} from "../common/index";
 // UI.
 import { UIApp } from "../ui/app/UIApp";

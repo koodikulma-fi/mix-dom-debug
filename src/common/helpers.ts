@@ -4,8 +4,8 @@
 // Libraries.
 import { MixDOMTreeNode, MixDOMTreeNodePass, SourceBoundary } from "mix-dom";
 // Common.
-import { HostDebugSettings } from "../shared";
-import { DebugTreeItem, DebugTreeItemType } from "./typing";
+import type { HostDebugSettings } from "../shared";
+import type { DebugTreeItem, DebugTreeItemType } from "./typing";
 
 
 // - App specific helpers - //

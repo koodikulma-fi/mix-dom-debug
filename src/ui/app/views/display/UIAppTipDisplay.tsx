@@ -5,7 +5,7 @@
 import { classNames } from "dom-types";
 import { MixDOM, MixDOMRenderOutput, ComponentFunc, ComponentRemote, MixDOMTreeNodePass, MixDOMTreeNodeHost, Host } from "mix-dom";
 // Common.
-import { HostDebugSettings } from "../../../../shared";
+import type { HostDebugSettings } from "../../../../shared";
 import { DebugTreeItem, getItemTypeFrom } from "../../../../common/index";
 // Classes.
 import { MixDOMDebug } from "../../../../classes";
