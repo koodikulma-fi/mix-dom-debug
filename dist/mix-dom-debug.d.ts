@@ -1,6 +1,6 @@
-import { Context } from 'data-signals';
-import { Host, MixDOMTreeNode, MixDOMTreeNodeType } from 'mix-dom';
+import { Host, MixDOMTreeNode } from 'mix-dom';
 import { ClassType } from 'mixin-types';
+import { Context } from 'data-signals';
 
 interface HostDebugSettings {
     /** Give an additional console to use for logging information. Will anyway log to the window where the debugger lives. */
@@ -97,21 +97,6 @@ type AppContexts = {
     debug: DebugContext;
     state: StateContext;
 };
-interface TreeListItem<Item extends TreeListItem = any> {
-    children?: Item[];
-}
-type DebugTreeItemType = Exclude<MixDOMTreeNodeType, "boundary"> | "component" | "empty" | "dom-element" | "dom-text" | "dom-external" | "dom-pseudo";
-interface DebugTreeItem extends TreeListItem<DebugTreeItem> {
-    id: MixDOMTreeNode;
-    treeNode: MixDOMTreeNode;
-    parent: DebugTreeItem | null;
-    level: number;
-    /** Name of the component, or other naming. */
-    name: string;
-    /** One liner of the content. For example, for a DOM element, it's the element as code. For a component, it's the class/function as a string. Does not contain nested content. */
-    description: string;
-}
-type IconNames = "" | "console" | "info" | "theme" | "close" | "back" | "forwards" | "expanded" | "collapsed" | "show-all" | "show-matched" | "scroll-to" | "select-all" | "select-none" | "no-selection" | "no-filter" | "click-select" | "click-select-tip" | "click-tip" | "filter" | "filter-collapsed" | "filter-expanded" | "filter-parents" | "filter-children" | "item-selected" | "item-deselected";
 
 /** Settings to initialize the app. */
 interface InitAppSettings {
@@ -175,4 +160,4 @@ declare class MixDOMDebug {
     static initApp: (settings?: Partial<InitAppSettings> | null, onLoad?: (() => void) | null) => void;
 }
 
-export { AppContexts, DebugContext, DebugContextData, DebugContextSignals, DebugTreeItem, DebugTreeItemType, HostDebugAppState, HostDebugAppStateUpdate, HostDebugSettings, HostDebugSettingsInit, IconNames, InitAppSettings, MixDOMDebug, MixDOMDebugType, StateContext, StateContextData, StateContextSignals, TipSectionNames, TreeListItem };
+export { HostDebugAppState, HostDebugAppStateUpdate, HostDebugSettings, HostDebugSettingsInit, InitAppSettings, MixDOMDebug, MixDOMDebugType, TipSectionNames };
