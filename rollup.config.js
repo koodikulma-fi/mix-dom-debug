@@ -149,15 +149,12 @@ export default [
         input: 'dist/index_launcher_global.js',
         output: {
             file: 'dist/launcher.global.js',
-            format: 'cjs',
-            exports: "auto"
+            format: 'cjs'
         },
         plugins: [
             // resolve(),
             terser({
-                // module: true,
                 ecma: 2015,
-                enclose: true,
                 mangle: {
                     // module: true,
                     keep_fnames: true,
@@ -170,8 +167,7 @@ export default [
                     keep_classnames: true,
                     // unsafe_arrows: true,
                 },
-
-                output: { quote_style: 1 },
+                output: { quote_style: 1 }
             }),
 
             // - Clean up - //
@@ -193,8 +189,7 @@ export default [
         input: 'dist/index_launcher.js',
         output: {
             file: 'dist/launcher.module.js',
-            format: 'es',
-            exports: "auto"
+            format: 'es'
         },
         plugins: [
             terser({

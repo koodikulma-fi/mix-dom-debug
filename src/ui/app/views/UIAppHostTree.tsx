@@ -9,7 +9,7 @@ import { MixDOM, Host, ComponentCtxFunc, MixDOMTreeNode, PseudoPortalProps, Sour
 // Common.
 import { HostDebugSettings } from "../../../shared";
 // Common in UI.
-import { flattenTreeWith, AppContexts, DebugTreeItem, DebugTreeItemType, getItemTypeFrom, getPassPhaseAndSource, consoleLogItem } from "../../../common/index";
+import { flattenTreeWith, AppContexts, DebugTreeItem, DebugTreeItemType, getItemTypeFrom, getPassPhraseAndSource, consoleLogItem } from "../../../common/index";
 import { UIList, UIVirtualListInfo } from "../../library/index";
 // Local.
 import { UIAppTreeItem, UIAppTreeItemInfo } from "./tree/index";
@@ -160,7 +160,7 @@ export interface UIAppHostTreeInfo {
     timers: "tip-hover" | "skip-hover";
 }
 
-export const UIAppHostTree: ComponentCtxFunc<UIAppHostTreeInfo> = function DebugHost(_initProps, comp, cApi) {
+export const UIAppHostTree: ComponentCtxFunc<UIAppHostTreeInfo> = function UIAppHostTree(_initProps, comp, cApi) {
 
 
     // - Init - //
@@ -240,6 +240,9 @@ export const UIAppHostTree: ComponentCtxFunc<UIAppHostTreeInfo> = function Debug
     // - Hosts - //
 
     const toggleSubHost = (host: Host, toggleOn?: boolean | null | "mode") => {
+        // Never.
+        if (host === comp.getHost())
+            return;
         // Remove.
         if (comp.state.includedSubHosts.includes(host)) {
             if (toggleOn === true)
@@ -286,7 +289,7 @@ export const UIAppHostTree: ComponentCtxFunc<UIAppHostTreeInfo> = function Debug
             switch(treeNode.type) {
                 case "pass": {
                     let sBoundary: SourceBoundary | null;
-                    [name, sBoundary] = getPassPhaseAndSource(treeNode);
+                    [name, sBoundary] = getPassPhraseAndSource(treeNode);
                     description = sBoundary ? sBoundary._outerDef.tag.name || "Anonymous" : "";
                     break;
                 }
@@ -343,7 +346,7 @@ export const UIAppHostTree: ComponentCtxFunc<UIAppHostTreeInfo> = function Debug
                     const isIncluded = includedSubHosts.includes(host);
                     !isIncluded && ignoreKids();
                     // Auto-toggle.
-                    if (includeAllSubHosts && !isIncluded)
+                    if (includeAllSubHosts && !isIncluded && host !== comp.getHost())
                         toggleSubHost(host, true);
                     break;
                 }

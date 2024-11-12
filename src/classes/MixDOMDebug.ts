@@ -12,8 +12,24 @@ import { consoleLog, appVersion, DebugContextSignals, DebugContextData, AppConte
 import { UIApp } from "../ui/app/UIApp";
 
 
-// - Class - //
+// - Extra typing - //
 
+/** Settings to initialize the app. */
+export interface InitAppSettings {
+    /** Url for the css file, defaults to: "https://unpkg.com/mix-dom-debug/MixDOMDebug.css" */
+    cssUrl: string;
+    /** Url for the font. Currently fixed to "Abel" from: "https://fonts.googleapis.com/css?family=Abel". */
+    fontUrl: string;
+    /** Whether adds the Google's prettify script for syntax highlighting. Defaults to true. Loaded from: "https://cdn.jsdelivr.net/gh/google/code-prettify@master/loader/prettify.js". */
+    prettify: boolean;
+    /** Whether adds the beautify script for JS code linebreaking and tabbing. Defaults to true. Loaded from: "https://cdnjs.cloudflare.com/ajax/libs/js-beautify/1.15.1/beautify.min.js". */
+    beautify: boolean;
+    /** Whether adds the div#app-root inside document.body or not. Defaults to false. */
+    addRoot: boolean;
+    /** Whether adds a fade in element. Defaults to false. */
+    useFadeIn: boolean;
+}
+/** The static class type for MixDOMDebug. */
 export interface MixDOMDebugType extends ClassType<MixDOMDebug, [container?: Element | null]> {
     /** Instance of the MixDOMDebug, once has started debugging. */
     debug: MixDOMDebug | null;
@@ -22,6 +38,9 @@ export interface MixDOMDebugType extends ClassType<MixDOMDebug, [container?: Ele
     /** Start debugging the given host. */
     startDebug: (host: Host, settings?: Partial<HostDebugSettings>, state?: Partial<HostDebugAppState>) => MixDOMDebug;
 }
+
+
+// - Class - //
 
 export class MixDOMDebug {
 
@@ -235,7 +254,7 @@ export class MixDOMDebug {
     public static startDebug = (host?: Host | null, settings?: HostDebugSettingsInit | null, appState?: HostDebugAppStateUpdate | null): MixDOMDebug => {
 
         // Parse.
-        const { rootElement, cssUrl, ...coreSettings } = settings || {};
+        const { rootElement, cssUrl, fontUrl, prettify, beautify, addRoot, useFadeIn, ...coreSettings } = settings || {};
 
         // Already inited.
         if (MixDOMDebug.debug) {
@@ -244,13 +263,20 @@ export class MixDOMDebug {
         }
 
         // Initialize.
-        MixDOMDebug.initApp(cssUrl, () => {
+        MixDOMDebug.initApp({
+            cssUrl,
+            fontUrl,
+            prettify,
+            beautify,
+            addRoot,
+            useFadeIn,
+        }, () => {
             // After has loaded all optional helper scripts, send a refresh.
             MixDOMDebug.debug && MixDOMDebug.debug.refresh();
         });
 
         // Start up debugging.
-        const elRoot = rootElement && rootElement instanceof Element ? rootElement : document.body.querySelector(rootElement || "#app-root");
+        const elRoot = rootElement && rootElement instanceof Element ? rootElement : rootElement === null ? null : document.body.querySelector(rootElement === undefined ? "#app-root" : rootElement);
 
         // Create the app.
         MixDOMDebug.debug = new MixDOMDebug(elRoot);
@@ -261,44 +287,95 @@ export class MixDOMDebug {
     }
     
     /** Should only be called once. Adds the css, scripts and a couple of DOM elements to set up the app.
-     * @param cssUrl This is only used for the css file.
+     * @param settings A partial dictionary of settings.
+     *      - cssUrl (string): Url for the css file, defaults to: "https://unpkg.com/mix-dom-debug/MixDOMDebug.css"
+     *      - fontUrl (string): Url for the font. Currently fixed to "Abel" from: "https://fonts.googleapis.com/css?family=Abel".
+     *      - prettify (boolean): Whether adds the Google's prettify script for syntax highlighting. Defaults to true. Loaded from: "https://cdn.jsdelivr.net/gh/google/code-prettify@master/loader/prettify.js".
+     *      - beautify (boolean): Whether adds the beautify script for JS code linebreaking and tabbing. Defaults to true. Loaded from: "https://cdnjs.cloudflare.com/ajax/libs/js-beautify/1.15.1/beautify.min.js".
+     *      - addRoot (boolean): Whether adds the div#app-root.ui inside document.body or not. Defaults to false.
+     *      - useFadeIn (boolean): Whether adds a fade in element. Defaults to false.
      * @param onLoad Called after loading the two optional auxiliary scripts.
-     *      - "prettify" is used for syntax highlighting,
-     *      - "beautify" is used for line breaks and tabs fos JS.
-     *      - If the codes are not present, they are simply skipped. After loading, refresh the app to take use of them.
      */
-    public static initApp = (cssUrl?: string, onLoad?: () => void) => {
+    public static initApp = (settings?: Partial<InitAppSettings> | null, onLoad?: (() => void) | null) => {
 
         // Parse url.
-        if (!cssUrl)
-            cssUrl = "https://unpkg.com/mix-dom-debug/MixDOMDebug.css";
+        if (!settings)
+            settings = {};
+        const cssUrl = settings.cssUrl ?? "https://unpkg.com/mix-dom-debug/MixDOMDebug.css";
+        const fontUrl = settings.fontUrl ?? "https://fonts.googleapis.com/css?family=Abel";
 
         // Shortcuts.
-        const w = window;
-        const doc = w.document;
+        const doc = window.document;
         const cssVersion = appVersion;
 
         // Modify html, head and body.
         // .. Modify <html/>.
         doc.documentElement.setAttribute("lang", "en");
         // .. Modify contents of <head/>.
-        const elDummy = doc.createElement("div");
-        elDummy.innerHTML = `
-<title>MixDOMDebug | Debugger for MixDOM library</title>
-<meta name='description' content="MixDOMDebug is an app for MixDOM library to debug a Host instance - shows the tree in details" />
-<meta name='keywords' content='mix-dom-debug, mixdomdebug, mixdomjs, mix-dom-js, mix, dom, debug, service' />
-<meta http-equiv='content-type' content='text/html' charset='utf-8' />
-<meta name='viewport' content='width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no' />
-<link href='https://fonts.googleapis.com/css?family=Abel' rel='stylesheet' />
-<link href="${cssUrl}?v=${cssVersion}" rel='stylesheet' type="text/css" />
-`.trim();
-        for (const elKid of elDummy.childNodes)
-            doc.head.appendChild(elKid);
+        let elTitle = doc.head.querySelector("title");
+        if (!elTitle) {
+            elTitle = doc.createElement("title");
+            elTitle.textContent = "MixDOMDebug | Debugger for MixDOM library";
+            doc.head.appendChild(elTitle);
+        }
+        let elDescription = doc.head.querySelector("meta[name=description]");
+        if (!elDescription) {
+            elDescription = doc.createElement("meta");
+            elDescription.setAttribute("name", "description");
+            elDescription.setAttribute("content", "MixDOMDebug is an app for MixDOM library to debug a Host instance - shows the tree in details");
+            doc.head.appendChild(elDescription);
+        }
+        let elHttpEquiv = doc.head.querySelector("meta[http-equiv=content-type]");
+        if (!elHttpEquiv) {
+            elHttpEquiv = doc.createElement("meta");
+            elHttpEquiv.setAttribute("http-equiv", "content-type");
+            elHttpEquiv.setAttribute("content", "text/html");
+            elHttpEquiv.setAttribute("charset", "utf-8");
+            doc.head.appendChild(elHttpEquiv);
+        }
+        let elViewport = doc.head.querySelector("meta[name=viewport]");
+        if (!elViewport) {
+            elViewport = doc.createElement("meta");
+            elViewport.setAttribute("name", "viewport");
+            elViewport.setAttribute("content", "width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no");
+            doc.head.appendChild(elViewport);
+        }
+        const elStyleLinks = [...doc.head.querySelectorAll("link[rel=stylesheet]")];
+        let elFont = elStyleLinks.find(link => link.getAttribute("href") === fontUrl);
+        if (!elFont) {
+            elFont = doc.createElement("link");
+            elFont.setAttribute("rel", "stylesheet");
+            elFont.setAttribute("type", "text/css");
+            elFont.setAttribute("href", fontUrl);
+            doc.head.appendChild(elFont);
+        }
+        const cssUrlVersion = `${cssUrl}?v=${cssVersion}`;
+        let elCss = elStyleLinks.find(link => link.getAttribute("href") === cssUrlVersion);
+        if (!elCss) {
+            elCss = doc.createElement("link");
+            elCss.setAttribute("rel", "stylesheet");
+            elCss.setAttribute("type", "text/css");
+            elCss.setAttribute("href", cssUrlVersion);
+            doc.head.appendChild(elCss);
+        }
         // .. Modify <body/>.
-        doc.body.style.cssText = "background: #222; margin: 0; padding: 0; width: 100%; height: 100%; font-family: 'Abel', Arial, sans-serif; font-size: 16px;";
+        if (settings.addRoot) {
+            // Get app root container.
+            let elAppRoot = doc.body.querySelector("#app-root");
+            // If didn't have, add.
+            if (!elAppRoot) {
+                // .. Set up background.
+                doc.body.style.cssText = "background: #222; margin: 0; padding: 0; width: 100%; height: 100%; font-family: 'Abel', Arial, sans-serif; font-size: 16px;";
+                // Add.
+                elAppRoot = doc.createElement("div");
+                elAppRoot.classList.add("ui");
+                elAppRoot.id = "app-root";
+                doc.body.appendChild(elAppRoot);
+            }
+        }
         // .. Add fade in feature inside <body/>.
-        const fadeIn = useFade(doc);
-
+        const fadeIn = settings.useFadeIn ? useFade(doc) : null;
+    
         // Script loader.
         let nToLoad = 0;
         const ready = () => {
@@ -306,7 +383,7 @@ export class MixDOMDebug {
             if (--nToLoad)
                 return;
             // Finished.
-            fadeIn();
+            fadeIn && fadeIn();
             onLoad && onLoad();
         };
 
@@ -314,20 +391,24 @@ export class MixDOMDebug {
         // .. Set scripts.
         const scriptsSrcs: string[] = [
             // For syntax highlighting JS code and HTML markup.
-            "https://cdn.jsdelivr.net/gh/google/code-prettify@master/loader/prettify.js",
+            settings.prettify !== false && "https://cdn.jsdelivr.net/gh/google/code-prettify@master/loader/prettify.js" || "",
             // For linebreaking and tabbifying JS code.
-            "https://cdnjs.cloudflare.com/ajax/libs/js-beautify/1.15.1/beautify.min.js"
-        ];
+            settings.beautify !== false && "https://cdnjs.cloudflare.com/ajax/libs/js-beautify/1.15.1/beautify.min.js" || ""
+        ].filter(s => s);
         // .. Load up.
-        scriptsSrcs.map(src => {
+        const existingScriptSrcs = [...doc.body.querySelectorAll("script")].map(s => s.getAttribute("src"));
+        if (!scriptsSrcs.map(src => {
             nToLoad++;
-            const script = w.document.createElement("script");
+            if (existingScriptSrcs.includes(src))
+                return null;
+            const script = doc.createElement("script");
             script.setAttribute("type", "text/javascript");
             script.setAttribute("src", src);
             script.onload = ready;
             return script;
-        }).forEach(script => w.document.body.appendChild(script));
-
+        }).filter(s => s).map(script => doc.body.appendChild(script!))[0])
+            // If had none, already ready.
+            ready();
     }
 }
 
@@ -337,15 +418,11 @@ export class MixDOMDebug {
 /** Smooth fade feature. Returns fadeIn callback. */
 function useFade(doc: Document): () => void {
     // Create.
-    const divAppRoot = doc.createElement("div");
-    divAppRoot.classList.add("ui");
-    divAppRoot.id = "app-root";
     const divAppHide = doc.createElement("div");
     divAppHide.classList.add("ui");
     divAppHide.id = "app-hide";
-    divAppHide.style.cssText = "position: absolute; inset: 0; z-index: 1; background: #222; opacity: 1; transition: opacity 150ms ease-in-out; pointer-events: none;";
+    divAppHide.style.cssText = "position: absolute; inset: 0; z-index: 1000; background: #222; opacity: 1; transition: opacity 150ms ease-in-out; pointer-events: none;";
     // Add to body.
-    doc.body.appendChild(divAppRoot);
     doc.body.appendChild(divAppHide);
     // Return fade-in callback.
     return () => {

@@ -1,9 +1,8 @@
 
 // - Export classes, common and UIs - //
 
-// Classes.
-export * from "./classes/index";
-// Common.
-export * from "./common/index";
-// UI.
-export * from "./ui/index";
+// Typing.
+export * from "./shared";
+export * from "./common/typing";
+// Class.
+export * from "./classes/MixDOMDebug";

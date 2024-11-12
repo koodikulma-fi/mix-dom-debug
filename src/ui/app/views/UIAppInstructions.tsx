@@ -128,7 +128,7 @@ export const UIAppInstructions: ComponentFunc<UIAppInstructionsInfo> = (_props, 
 
                 </SectionHelper>
                 <SectionHelper title="Using the launcher script" name="using-launcher">
-                    <p class="style-text-center">Including the launcher script adds one function to the global window: <Code code="openMixDOMDebug"/>.</p>
+                    <p class="style-text-center">Including the launcher script adds one function to the global window: <Code code="openMixDOMDebug"/></p>
 
                     <Aside>
                         <H3>Global usage</H3>
@@ -159,7 +159,7 @@ document.body.appendChild(script);
 
 `.trim()} />
 
-                        <p>If you have the <Code code="mix-dom-debug"/> package downloaded / installed locally, you can of course point to its <Code code="launcher.global.js"/>.</p>
+                        <p>If you have the <Code code="mix-dom-debug"/> package downloaded / installed locally, you can of course point to its <Code code='"launcher.global.js"'/>.</p>
                     </Aside>
 
                     <Aside>
@@ -168,7 +168,7 @@ document.body.appendChild(script);
                         <ol class="style-ui-list">
                             <li><Small italic={true} wide={true}>1. </Small>First, install <Code code="mix-dom-debug"/> from the terminal <Small>(as a dev. dependency)</Small>: <Pre code={escapeHTML(`npm -i mix-dom-debug --save-dev`)} /></li>
                             <li><Small italic={true} wide={true}>2. </Small>Then import <Small>(or require)</Small> the launcher function: <Pre code={`import { openMixDOMDebug } from "mix-dom-debug";`} /></li>
-                            <li><Small italic={true} wide={true}>3. </Small>And finally hook it up in your code <Small>(with typing support)</Small>: <Pre code={`openMixDOMDebug(host, debugSettings, appState, windowSettings);`} /></li>
+                            <li><Small italic={true} wide={true}>3. </Small>And finally hook it up in your code <Small>(with typing support)</Small>: <Pre code={`openMixDOMDebug(host, debugSettings, appState);`} /></li>
                         </ol>
                     </Aside>
 
@@ -181,10 +181,16 @@ document.body.appendChild(script);
 interface DebugSettings {
     // Persistent.
     console?: Console;       // Default: window.console (in original window)
-    // Only for launching.
+    // App setup.
     rootElement?: Element | string | null; // Defaults to "#app-root"
-    scriptUrl?: string;      // Default: "https://unpkg.com/mix-dom-debug/MixDOMDebug.js"
+    prettify?: boolean;      // Default: true. Adds Google prettify for syntax highlight.
+    beautify?: boolean;      // Default: true. Adds beautify JS for linebreaking and tabs.
+    addRoot?: boolean;       // Default: true for launcher, false normally.
+    useFadeIn?: boolean;     // Default: true for launcher, false normally.
+    fontUrl?: string;        // Default: "https://fonts.googleapis.com/css?family=Abel"
     cssUrl?: string;         // Default: "https://unpkg.com/mix-dom-debug/MixDOMDebug.css"
+    // Only for launcher.
+    scriptUrl?: string;      // Default: "https://unpkg.com/mix-dom-debug/MixDOMDebug.js"
     windowFeatures?: string; // Default: "toolbar=0,scrollbars=0,location=0,resizable=1"
     windowTarget?: string;   // Default: "_blank"
     onLoad?: (debug, host, debugWindow) => void;    // Default: undefined
@@ -224,19 +230,20 @@ type TipSectionNames = "heading" | "code" | "props" | "state" | "contexts" |
 function openMixDOMDebug(host, debugSettings, appState) {
 
     // Parse.
-    const s = { console: window.console, ...debugSettings };
-    const sUrl = s.scriptUrl || "https://unpkg.com/mix-dom-debug/MixDOMDebug.js";
-    const wFeatures = s.windowFeatures || "toolbar=0,scrollbars=0,location=0,resizable=1";
-    const wTarget = s.windowTarget || "_blank";
-    const onLoad = s.onLoad;
-    const coreSettings = {
-        console: s.console !== undefined ? s.console : window.console,
-        cssUrl: s.cssUrl || sUrl.slice(0, sUrl.lastIndexOf("/") + 1) + "MixDOMDebug.css",
-        rootElement: s.rootElement
+    let { scriptUrl: sUrl, windowFeatures, windowTarget, onLoad, ...coreSettings } = {
+        console: window.console,
+        addRoot: true,
+        useFadeIn: true,
+        windowFeatures: "toolbar=0,scrollbars=0,location=0,resizable=1",
+        windowTarget: "_bank",
+        scriptUrl: "https://unpkg.com/mix-dom-debug/MixDOMDebug.js",
+        ...debugSettings
     };
+    if (coreSettings.cssUrl === undefined)
+        coreSettings.cssUrl = sUrl.slice(0, sUrl.lastIndexOf("/") + 1) + "MixDOMDebug.css";
 
     // Open a window.
-    const w = window.open(undefined, wTarget, wFeatures);
+    const w = window.open(undefined, windowTarget, windowFeatures);
 
     // Generate contents.
     if (w) {
@@ -287,8 +294,11 @@ import { MixDOMDebug } from "mix-dom-debug";
 const UIAppToDebug = () => <div class="app-to-debug">...</div>;
 const hostToDebug = new Host(<UIAppToDebug/>);
 
+// Initialize styles and optional scripts to this document.
+MixDOMDebug.initApp(); // Can define more options here.
+
 // Create a debug instance manually.
-const debug = new MixDOMDebug(document.body.querySelector("#my-app-root"));
+const debug = new MixDOMDebug(); // No need to give a container.
 debug.setHost(hostToDebug);
 
 // Insert the debugger's own host inside your dev. app.

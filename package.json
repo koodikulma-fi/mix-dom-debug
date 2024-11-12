@@ -27,13 +27,21 @@
   "module": "./dist/mix-dom-debug.module.js",
   "main": "./dist/mix-dom-debug.js",
   "types": "./dist/mix-dom-debug.d.ts",
+  "script": "./dist/MixDOMDebug.js",
   "exports": {
     ".": {
+      "types": "./dist/mix-dom-debug.d.ts",
       "import": "./dist/mix-dom-debug.module.js",
       "require": "./dist/mix-dom-debug.js",
       "script": "./dist/MixDOMDebug.js"
     },
-    "./package.json": "./package.json"
+    "./package.json": "./package.json",
+    "./launcher": {
+      "types": "./dist/launcher.d.ts",
+      "import": "./dist/launcher.module.js",
+      "require": "./dist/launcher.js",
+      "script": "./dist/launcher.global.js"
+    }
   },
   "files": [
     "dist",
@@ -44,10 +52,10 @@
     "build": "tsc && rollup -c rollup.config.js"
   },
   "dependencies": {
-    "mix-dom": "~4.3.0",
-    "data-memo": "~1.0.3",
-    "data-signals": "~1.2.1",
-    "dom-types": "~1.1.2"
+    "mix-dom": "^4.3.0",
+    "data-memo": "^1.0.3",
+    "data-signals": "^1.2.1",
+    "dom-types": "^1.1.2"
   },
   "devDependencies": {
     "@rollup/plugin-node-resolve": "^15.3.0",

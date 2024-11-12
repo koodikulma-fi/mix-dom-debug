@@ -79,26 +79,23 @@ export const UITreeNodeType: ComponentFunc<UITreeNodeTypeInfo> = (_props, comp) 
                 description = readComponentOneLine(treeNode);
                 break;
             case "portal":
-                description = <>
-                    <span class="style-color-dim">Portal to </span>
-                    <Prettify code={escapeHTML(item.description)} className="style-text-ellipsis" />
-                </>;
+                description = item.description ?
+                    <>
+                        <span class="style-color-dim">Portal to </span>
+                        <Prettify code={escapeHTML(item.description)} className="style-text-ellipsis" />
+                    </> : <b>Portal</b>
                 break;
             case "root":
                 description = <>
-                    <span class="style-color-dim">Root container </span>
+                    <b>Root container </b>
                     <Prettify code={escapeHTML(item.description)} className="style-text-ellipsis" />
                 </>;
                 break;
             case "host":
-                description = <>
-                    <span class="style-color-dim">Nested host</span>
-                </>;
+                description = <b>Nested host</b>;
                 break;
             case "":
-                description = <>
-                    <span class="style-color-dim">Empty</span>
-                </>;
+                description = <b>Empty</b>;
                 break;
         }
 

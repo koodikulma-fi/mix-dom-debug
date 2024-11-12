@@ -13,7 +13,7 @@ import { MixOnEscape, MixOnEscapeInfo } from "../../mixables/MixOnEscape";
 
 // - Remote component - //
 
-// Create a remote. Insert it somewhere with: UIAppTipRemote.Content
+// Create a remote. Insert it somewhere with: `UIAppTipRemote.Content`.
 export const UIAppTipRemote = MixDOM.remote();
 
 
@@ -87,4 +87,7 @@ export const UIAppTip = MixDOM.mixFuncsWith(MixHoverSignal, MixOnEscape, MixPosi
         comp.refreshPopupId = renderTip; // Use the renderTip as refreshId for popup tip.
         return MixDOM.def(tag, { _ref: rootRef ? [rootRef, comp.hoverRef] as Ref<Node>[] : comp.hoverRef, class: classNames(_class, className), onClick, ...passProps }, MixDOM.Content, MixDOM.def(comp.WithTooltip) );
     };
-}, null as any as UIAppTipOwnInfo) as any as <Tag extends DOMTags = "div">(initProps: ComponentProps<UIAppTipInfo<Tag>> & Omit<HTMLAttributes<Tag>, "class">, comp: ComponentWith<UIAppTipInfo<Tag>>) => ComponentFuncReturn<UIAppTipInfo<Tag>>;
+}, null as any as UIAppTipOwnInfo,
+"UIAppTip"
+// Note. We need `as any` here on the build.
+) as any as <Tag extends DOMTags = "div">(initProps: ComponentProps<UIAppTipInfo<Tag>> & Omit<HTMLAttributes<Tag>, "class">, comp: ComponentWith<UIAppTipInfo<Tag>>) => ComponentFuncReturn<UIAppTipInfo<Tag>>;

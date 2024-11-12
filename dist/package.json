@@ -1,16 +1,17 @@
 {
   "name": "mix-dom-debug",
-  "version": "0.3.6",
-  "description": "Debugging middleware for contexts from mix-dom",
+  "version": "1.0.0",
+  "description": "App to debug a MixDOM Host (for mix-dom rendering library)",
   "keywords": [
     "MixDOM",
     "mix-dom",
     "mix-dom-debug",
     "mix dom",
     "mix dom debug",
+    "host",
+    "debug",
     "mix",
     "dom",
-    "debug",
     "tools",
     "web",
     "js",
@@ -27,6 +28,7 @@
   "module": "./mix-dom-debug.module.js",
   "main": "./mix-dom-debug.js",
   "types": "./mix-dom-debug.d.ts",
+  "script": "./MixDOMDebug.js",
   "exports": {
     ".": {
       "types": "./mix-dom-debug.d.ts",
@@ -51,9 +53,9 @@
     "build": "tsc && rollup -c rollup.config.js"
   },
   "dependencies": {
-    "mix-dom": "~4.3.0",
-    "data-memo": "~1.0.3",
-    "data-signals": "~1.2.1",
-    "dom-types": "~1.1.2"
+    "mix-dom": "^4.3.0",
+    "data-memo": "^1.0.3",
+    "data-signals": "^1.2.1",
+    "dom-types": "^1.1.2"
   }
 }

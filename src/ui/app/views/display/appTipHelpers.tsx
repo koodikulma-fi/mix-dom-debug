@@ -6,7 +6,7 @@ import { classNames } from "dom-types";
 import { createTrigger } from "data-memo";
 import { MixDOM, Component, MixDOMRenderOutput, ComponentFunc, MixDOMTreeNodeBoundary, MixDOMTreeNode, MixDOMTreeNodePass, ComponentWiredFunc, ComponentWiredType, ComponentRemote, SourceBoundary } from "mix-dom";
 // Common.
-import { DebugTreeItem, getPassPhaseAndSource } from "../../../../common/index";
+import { DebugTreeItem, getPassPhraseAndSource } from "../../../../common/index";
 // App UI common.
 import { UIAppButton } from "../../common/UIAppButton";
 // Local.
@@ -50,7 +50,7 @@ export function readComponentOneLine(treeNode: MixDOMTreeNodeBoundary | MixDOMTr
             <Prettify code={treeNode.def.tag.toString()} className="style-text-ellipsis" />
         </>;
     // Remote content pass.
-    const [phrase, sBoundary] = getPassPhaseAndSource(treeNode);
+    const [phrase, sBoundary] = getPassPhraseAndSource(treeNode);
     // Content pass.
     const name = sBoundary && sBoundary._outerDef.tag.name || "Anonymous";
     return <>

@@ -17,7 +17,7 @@ export interface UIAppTopBarInfo {
     state: Omit<StateContextData, "hiddenTipSections">;
     contexts: AppContexts;
 }
-export const UIAppTopBar: ComponentCtxFunc<UIAppTopBarInfo> = function DebugHost(_initProps, comp, cApi) {
+export const UIAppTopBar: ComponentCtxFunc<UIAppTopBarInfo> = function UIAppTopBar(_initProps, comp, cApi) {
 
     // Context to state.
     comp.state = {

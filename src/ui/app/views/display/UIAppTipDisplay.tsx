@@ -128,7 +128,7 @@ export const UIAppTipDisplay: ComponentFunc<UIAppTipDisplayInfo> = (_props, comp
             script.setAttribute("src", scriptRef ? scriptRef.getAttribute("src")! : "https://unpkg.com/mix-dom-debug/MixDOMDebug.js");
             // Loader.
             script.addEventListener("load", () => {
-                w.setTimeout(() => w.MixDOMDebug.startDebug(host, { ...comp.props.debugInfo, cssUrl: cssRef && cssRef.getAttribute("href") || undefined }));
+                w.setTimeout(() => w.MixDOMDebug.startDebug(host, { ...comp.props.debugInfo, addRoot: true, useFadeIn: true, cssUrl: cssRef && cssRef.getAttribute("href") || undefined }));
             });
             w.document.body.appendChild(script);
 		}
@@ -142,10 +142,11 @@ export const UIAppTipDisplay: ComponentFunc<UIAppTipDisplayInfo> = (_props, comp
         const item = comp.state.history[comp.state.iHistory];
         const treeNode = item.treeNode;
         let showRenderedBy = true;
+        let showRendersIn = true;
         let headingContent: MixDOMRenderOutput = null;
         let preContent: MixDOMRenderOutput = null;
         let postContent: MixDOMRenderOutput = null;
-        let domContentStr = MixDOM.readDOMString(treeNode, false, 0, null);
+        let domContentStr: string | undefined = undefined;
         switch(treeNode.type) {
             case "dom": {
                 // Content.
@@ -194,6 +195,7 @@ export const UIAppTipDisplay: ComponentFunc<UIAppTipDisplayInfo> = (_props, comp
             }
             case "root": {
                 showRenderedBy = false;
+                showRendersIn = false;
                 headingContent = (
                     <UIAppTipHeading title={<span class="layout-padding-l-x layout-padding-m-y layout-inline-block">Root container</span>} extraTitle={item.description ? <Prettify code={escapeHTML(item.description)} className="layout-padding-l layout-border-box layout-inline-block" /> : undefined} afterTitle={item.description ? undefined : <span class="style-text-small">{item.treeNode.parent ? "(element inherited)" : "(no element)"}</span>} {...getHeadingProps()} >
                         <ul class="style-ui-list">
@@ -206,20 +208,22 @@ export const UIAppTipDisplay: ComponentFunc<UIAppTipDisplayInfo> = (_props, comp
                 break;
             }
             case "host": {
-                const isIncluded = comp.props.includedSubHosts && comp.props.includedSubHosts.includes(treeNode.def.host!) || false;
+                const host = (treeNode as MixDOMTreeNodeHost).def.host!;
+                const isSelf = comp.getHost() === host;
+                const isIncluded = comp.props.includedSubHosts && comp.props.includedSubHosts.includes(host) || false;
+                showRendersIn = isIncluded;
                 headingContent = (
                     <UIAppTipHeading title={<span class="layout-padding-l-x layout-padding-m-y layout-inline-block">Nested host</span>} {...getHeadingProps()} >
                         <ul class="style-ui-list">
-                            <li>Contains another host instance. You can debug it, too.</li>
-                            <li><UIAppButton look="edge" onPress={onPressHostToggle} renderTip={renderDebugTip} toggled={isIncluded}>{isIncluded ? "Exclude from this debug" + (comp.props.includeAllHosts ? " and disable auto inclusion" : "") : "Include in this debug"}</UIAppButton></li>
-                            <li><UIAppButton look="edge" onPress={onPressDebug} renderTip={renderDebugTip}>Open in new debug window</UIAppButton></li>
+                            <li>Contains another host instance{!isSelf ? ". You can debug it, too." : ", which is actually this debugger's host."}</li>
+                            <li>{isSelf ? null : <UIAppButton look="edge" onPress={onPressHostToggle} renderTip={renderDebugTip} toggled={isIncluded}>{isIncluded ? "Exclude from this debug" + (comp.props.includeAllHosts ? " and disable auto inclusion" : "") : "Include in this debug"}</UIAppButton>}</li>
+                            <li>{isSelf ? null : <UIAppButton look="edge" onPress={onPressDebug} renderTip={renderDebugTip}>Open in new debug window</UIAppButton>}</li>
                         </ul>
                     </UIAppTipHeading>
                 );
-                const hostSettings = treeNode.def.host?.settings;
+                const hostSettings = host.settings;
                 preContent = <UIAppTipSection _key="settings" type="settings" title="Host settings" debugInfo={props.debugInfo} debugTarget={hostSettings} ><RenderPartList portion={hostSettings || {}} /></UIAppTipSection>;
-                const host = (treeNode as MixDOMTreeNodeHost).def.host;
-                domContentStr = host && host.groundedTree.children[0] ? MixDOM.readDOMString(host.groundedTree.children[0], false, 0, null) : "";
+                domContentStr = showRendersIn && host && host.groundedTree.children[0] ? MixDOM.readDOMString(host.groundedTree.children[0], false, 0, null) : "";
                 break;
             }
             case "pass":
@@ -251,9 +255,10 @@ export const UIAppTipDisplay: ComponentFunc<UIAppTipDisplayInfo> = (_props, comp
                 );
                 break;
         }
-        // Clean up.
+        // Dom content string.
+        if (showRendersIn && domContentStr === undefined)
+            domContentStr = MixDOM.readDOMString(treeNode, false, 0, null);;
         if (domContentStr && !domContentStr.trim().startsWith("<"))
-            // domContentStr = '"' + domContentStr.replace(/"/g, "&quot;") + '"';
             domContentStr = JSON.stringify(domContentStr);
         // Render.
         return <div class={classNames("style-ui-panel flex-col", sProps.className, state.isAlive ? "layout-auto-pointer" : "layout-no-pointer")} style={sProps.style} onMouseEnter={onTipEnter} onMouseLeave={onTipLeave} >
@@ -262,7 +267,7 @@ export const UIAppTipDisplay: ComponentFunc<UIAppTipDisplayInfo> = (_props, comp
                 {preContent}
                 {showRenderedBy ? <RenderedByComponents treeNode={treeNode} iUpdate={props.iUpdate} onItemLink={props.onItemLink} /> : null}
                 {postContent}
-                {treeNode.type === "root" || !domContentStr ? null :
+                {!domContentStr ? null :
                     <UIAppTipSection type="renders" title="Renders in DOM" useDefaultLimits={false} >
                         <PrettifyDelay origCode={domContentStr.replace(/\t/g, "    ")} prePrettifier={escapeHTML} tag="pre" {...getMiniScrollableProps("layout-padding-l")} />
                     </UIAppTipSection>

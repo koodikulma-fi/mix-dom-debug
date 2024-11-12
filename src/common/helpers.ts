@@ -1,13 +1,14 @@
 
 // - Imports - //
 
-import { MixDOM, MixDOMRenderOutput, MixDOMTreeNode, MixDOMTreeNodePass, SourceBoundary } from "mix-dom";
+// Libraries.
+import { MixDOMTreeNode, MixDOMTreeNodePass, SourceBoundary } from "mix-dom";
+// Common.
 import { HostDebugSettings } from "../shared";
 import { DebugTreeItem, DebugTreeItemType } from "./typing";
-import { classNames } from "dom-types";
 
 
-// - Helpers - //
+// - App specific helpers - //
 
 export function getItemTypeFrom(treeNode: MixDOMTreeNode): DebugTreeItemType {
     switch(treeNode.type) {
@@ -25,19 +26,22 @@ export function getItemTypeFrom(treeNode: MixDOMTreeNode): DebugTreeItemType {
     }
 }
 
-export function getPassPhaseAndSource(treeNode: MixDOMTreeNodePass): [phrase: string, sBoundary: SourceBoundary | null] {
+export function getPassPhraseAndSource(treeNode: MixDOMTreeNodePass): [phrase: string, sBoundary: SourceBoundary | null] {
     return treeNode.def.getRemote ?
         ["Remote pass", treeNode.def.getRemote().boundary] : 
         ["Content pass", treeNode.boundary && treeNode.boundary.sourceBoundary];
 }
 
+
+// - Console log - //
+
 export function consoleLog(debugInfo: HostDebugSettings | null | undefined, ...args: any[]): void {
     console.log(...args);
-    debugInfo && debugInfo.console && debugInfo.console.log(...args);
+    debugInfo && debugInfo.console && debugInfo.console !== console && debugInfo.console.log(...args);
 }
 export function consoleWarn(debugInfo: HostDebugSettings | null | undefined, ...args: any[]): void {
     console.warn(...args);
-    debugInfo && debugInfo.console && debugInfo.console.warn(...args);
+    debugInfo && debugInfo.console && debugInfo.console !== console && debugInfo.console.warn(...args);
 }
 
 export const consoleLogItem = (debugInfo: HostDebugSettings | null | undefined, item: DebugTreeItem): void => {
@@ -60,12 +64,7 @@ export const consoleLogItem = (debugInfo: HostDebugSettings | null | undefined, 
 };
 
 
-// export function computeSnappedValue(snapStep: number, value: number): number {
-//     if (!snapStep)
-//         return value;
-//     // For better float rounding, use `/ (1.0 / snapStep)` instead of `* snapStep`.
-//     return snapStep ? Math.round(value / snapStep) / (1.0 / snapStep) : value;
-// }
+// - Tree helpers - //
 
 /** Helper to read array like properties from an object, optionally only certain kind of arrays. */
 export type ArrLikePropsOf<T extends Record<string, any>, Arr extends any[] = any[]> = { [Key in string & keyof T]: T[Key] extends Arr ? Key : never; }[string & keyof T];

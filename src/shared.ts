@@ -8,10 +8,20 @@ export interface HostDebugSettings {
 
 /** This type contains partial HostDebugSettings and a few initial settings only used on start up (rootElement and cssUrl). */
 export interface HostDebugSettingsInit extends Partial<HostDebugSettings> {
-    /** App root element or selector. If null, creates an element with "app-root" id and puts it inside `document.body`. */
+    /** App root element or selector. Note that when using the launcher to open in a new window, defaults to "#app-root" using the default MixDOMDebug.initApp creation process. */
     rootElement?: string | Element | null;
     /** Url for loading up the css file for the app. Defaults to: https://unpkg.com/mix-dom-debug/MixDOMDebug.css */
     cssUrl?: string;
+    /** Url for the font. Currently fixed to "Abel" from: "https://fonts.googleapis.com/css?family=Abel". */
+    fontUrl?: string;
+    /** Whether to add the Google prettify JS script to do syntax highlighting. Strongly recommended - defaults to true. The script is loaded from: "https://cdn.jsdelivr.net/gh/google/code-prettify@master/loader/prettify.js" */
+    prettify?: boolean;
+    /** Whether to add the beautify JS script to help linebreaking and tabbifying JS code. Defaults to true. The script is loaded from: "https://cdnjs.cloudflare.com/ajax/libs/js-beautify/1.15.1/beautify.min.js" */
+    beautify?: boolean;
+    /** Whether adds the div#app-root.ui element inside the body. Defaults to false. */
+    addRoot?: boolean;
+    /** Whether uses a fade in when initializing the app. Defaults to false. */
+    useFadeIn?: boolean;
 }
 
 
@@ -42,7 +52,7 @@ export type TipSectionNames = "heading" | "code" | "props" | "state" | "contexts
 
 /** Simplified version of MixDOMTreeNode. */
 interface _MixDOMTreeNode {
-    type: "dom" | "portal" | "boundary" | "pass" | "host" | "root";
+    type: "dom" | "portal" | "boundary" | "pass" | "host" | "root" | "";
 }
 interface _Host {
     groundedTree: _MixDOMTreeNode;
