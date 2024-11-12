@@ -236,3 +236,5 @@ const devHost = new Host(<UIDevApp/>);
 // debug.updateSettings(settings, appState);    // Update settings.
 // debug.clearHost(host);                       // Stop debugging.
 ```
+## See docs (mixdomjs.org) for more
+To see a real time example of debugging, see the [mix-dom docs](https://mixdomjs.org) and open the **Debug** link in the top bar.

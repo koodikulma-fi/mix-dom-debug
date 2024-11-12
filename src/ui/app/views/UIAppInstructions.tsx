@@ -70,7 +70,7 @@ const SectionTogglable = <Names extends string = string>(_props: ComponentProps<
 
 // - Component - //
 
-export type SectionNames = "instructions" | "set-host" | "using-launcher" | "manual-launching" | "render-app";
+export type SectionNames = "instructions" | "set-host" | "using-launcher" | "manual-launching" | "render-app" | "docs-example";
 export interface UIAppInstructionsInfo {
     props: { refreshId?: any; };
     state: { hiddenSections: SectionNames[]; };
@@ -313,6 +313,10 @@ const devHost = new Host(<UIDevApp/>);
 
 `.trim())} />
                     </Aside>
+                </SectionHelper>
+
+                <SectionHelper title="See docs (mixdomjs.org) for more" name="docs-example">
+                    <p class="style-text-center">To see a real time example of debugging, see the <A href="https://mixdomjs.org">mix-dom docs</A>, and open the <b>Debug</b> link in the top bar.</p>
                 </SectionHelper>
 
             </Article>
