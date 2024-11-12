@@ -3,16 +3,18 @@
 
 // Libraries.
 import { classNames } from "dom-types";
-import { MixDOM, MixDOMRenderOutput, ComponentFunc, ComponentRemote, MixDOMTreeNodePass, MixDOMTreeNodeHost } from "mix-dom";
+import { MixDOM, MixDOMRenderOutput, ComponentFunc, ComponentRemote, MixDOMTreeNodePass, MixDOMTreeNodeHost, Host } from "mix-dom";
 // Common.
-import { consoleLog, DebugTreeItem, getItemTypeFrom, HostDebugSettings, wrapTip } from "../../../../common/index";
-// Common in UI.
-import { UIAppButton } from "../../common/index";
-// Local.
-import { beautify, escapeHTML, getMiniScrollableProps, getSnippetContainerProps, Prettify, PrettifyDelay } from "./beautifyHelpers";
-import { UIAppTipHeading, UIAppTipSection } from "./UIAppTipSection";
-import { readComponentOneLine, RenderComponentChildren, RenderComponentPartList, RenderComponentWiredChildren, RenderComponentRemoteChildren, RenderedByComponents, OnItemLink, RenderPartList } from "./appTipHelpers";
+import { HostDebugSettings } from "../../../../shared";
+import { DebugTreeItem, getItemTypeFrom } from "../../../../common/index";
+// Classes.
 import { MixDOMDebug } from "../../../../classes";
+// Common in UI.
+import { UIAppButton, wrapTip } from "../../common/index";
+// Local.
+import { UIAppTipHeading, UIAppTipSection } from "./UIAppTipSection";
+import { beautify, escapeHTML, getMiniScrollableProps, getSnippetContainerProps, Prettify, PrettifyDelay } from "./beautifyHelpers";
+import { readComponentOneLine, RenderComponentChildren, RenderComponentPartList, RenderComponentWiredChildren, RenderComponentRemoteChildren, RenderedByComponents, OnItemLink, RenderPartList } from "./appTipHelpers";
 
 
 // - Component - //
@@ -29,6 +31,9 @@ export interface UIAppTipDisplayInfo {
         onTipPresence?: (treeNode: DebugTreeItem["id"], type: "hoverable" | "popup", present: boolean) => void;
         /** In "tip" mode clicking the row toggles the tip. In "select" clicking the row does selection. In "select-tip", clicking does selection, but hovering the row provides tip. */
         rowMode?: "select" | "select-tip" | "tip";
+        includedSubHosts?: Host[];
+        includeAllHosts?: boolean;
+        toggleSubHost?: (host: Host, included?: boolean | null | "mode") => void;
     };
     state: {
         isAlive: boolean;
@@ -97,7 +102,12 @@ export const UIAppTipDisplay: ComponentFunc<UIAppTipDisplayInfo> = (_props, comp
         };
     }
 
-    const renderDebugTip = () => wrapTip(<div>Click to open the nested host in its own debug window.</div>);
+    const renderDebugTip = () => wrapTip(<div>Click to open the nested host in its own debug window.<br /> - Click with <b>Shift</b> to toggle inclusion for all hosts.</div>);
+
+    const onPressHostToggle = (e: MouseEvent | KeyboardEvent) => {
+        const host = comp.props.item.treeNode.def?.host;
+        host && comp.props.toggleSubHost && comp.props.toggleSubHost(host, (e.shiftKey || comp.props.includeAllHosts) && "mode" || null);
+    }
     const onPressDebug = () => {
         // Get host.
         const host = comp.props.item.treeNode.def?.host;
@@ -109,14 +119,17 @@ export const UIAppTipDisplay: ComponentFunc<UIAppTipDisplayInfo> = (_props, comp
         // Set up.
 		if (w) {
 			// Note. We can use "beforeunload" to call a func inside, because we're doing it outside of the window.
-			w.addEventListener("beforeunload", () => { w.MixDOMDebug && w.MixDOMDebug.stopDebug(); } );
+			w.addEventListener("beforeunload", () => { w.MixDOMDebug && w.MixDOMDebug.stopDebug(true); } );
             // Set the same base script.
-            const scriptRef = [...document.body.children].find(el => el.tagName === "SCRIPT" && el.getAttribute("src")?.endsWith("MixDOMDebug.js"))
+            const scriptRef = [...document.body.children].find(el => el.tagName === "SCRIPT" && el.getAttribute("src")?.includes("MixDOMDebug.js"));
+            const cssRef = [...document.head.children].find(el => el.tagName === "LINK" && el.getAttribute("rel") === "stylesheet" && el.getAttribute("href")?.includes("MixDOMDebug.css"));
             const script = w.document.createElement("script");
             script.setAttribute("type", "text/javascript");
             script.setAttribute("src", scriptRef ? scriptRef.getAttribute("src")! : "https://unpkg.com/mix-dom-debug/MixDOMDebug.js");
             // Loader.
-            script.addEventListener("load", () => w.MixDOMDebug && w.setTimeout(() => w.MixDOMDebug.startDebug(host, comp.props.debugInfo), 1));
+            script.addEventListener("load", () => {
+                w.setTimeout(() => w.MixDOMDebug.startDebug(host, { ...comp.props.debugInfo, cssUrl: cssRef && cssRef.getAttribute("href") || undefined }));
+            });
             w.document.body.appendChild(script);
 		}
     };
@@ -161,7 +174,7 @@ export const UIAppTipDisplay: ComponentFunc<UIAppTipDisplayInfo> = (_props, comp
             case "boundary": {
                 const tag = treeNode.def.tag;
                 const component = treeNode.boundary.component;
-                const rPasses = component.constructor.MIX_DOM_CLASS === "Remote" ? component.getHost().findTreeNodes(["pass"], 0, false, (tNode => (tNode as MixDOMTreeNodePass).def.getRemote && (tNode as MixDOMTreeNodePass).def.getRemote!() === component)) as MixDOMTreeNodePass[] : null;
+                const rPasses = component.constructor.MIX_DOM_CLASS === "Remote" ? component.getHost().findTreeNodes(["pass"], 0, true, (tNode => (tNode as MixDOMTreeNodePass).def.getRemote && (tNode as MixDOMTreeNodePass).def.getRemote!() === component)) as MixDOMTreeNodePass[] : null;
                 headingContent = <UIAppTipHeading _key="heading" title={tag["MIX_DOM_CLASS"] === "Remote" ? "Remote component" : component.contextAPI ? <>Component <span class="style-text-small">(with ContextAPI)</span></> : "Component"} extraTitle={<b class="style-color-emphasis layout-padding-l-x layout-padding-m-y layout-inline-block">{item.name || "Anonymous"}</b>} {...getHeadingProps()} />;
                 preContent = <>
                     <UIAppTipSection _key="code" type="code" title="JS code" useDefaultLimits={false} >
@@ -193,10 +206,13 @@ export const UIAppTipDisplay: ComponentFunc<UIAppTipDisplayInfo> = (_props, comp
                 break;
             }
             case "host": {
+                const isIncluded = comp.props.includedSubHosts && comp.props.includedSubHosts.includes(treeNode.def.host!) || false;
                 headingContent = (
                     <UIAppTipHeading title={<span class="layout-padding-l-x layout-padding-m-y layout-inline-block">Nested host</span>} {...getHeadingProps()} >
                         <ul class="style-ui-list">
-                            <li>Contains another host instance. <UIAppButton look="edge" onPress={onPressDebug} renderTip={renderDebugTip}>Open in debug</UIAppButton></li>
+                            <li>Contains another host instance. You can debug it, too.</li>
+                            <li><UIAppButton look="edge" onPress={onPressHostToggle} renderTip={renderDebugTip} toggled={isIncluded}>{isIncluded ? "Exclude from this debug" + (comp.props.includeAllHosts ? " and disable auto inclusion" : "") : "Include in this debug"}</UIAppButton></li>
+                            <li><UIAppButton look="edge" onPress={onPressDebug} renderTip={renderDebugTip}>Open in new debug window</UIAppButton></li>
                         </ul>
                     </UIAppTipHeading>
                 );
@@ -219,7 +235,7 @@ export const UIAppTipDisplay: ComponentFunc<UIAppTipDisplayInfo> = (_props, comp
                 headingContent = (
                     <UIAppTipHeading title={<span class="layout-padding-l-x layout-padding-m-y layout-inline-block">Portal</span>} afterLogTarget={item.treeNode?.domNode || null} afterTitle={<span class="style-color-dim"> to </span>} afterLogTitle={prettyPortal} {...getHeadingProps()}>
                         <ul class="style-ui-list">
-                            <li>Portal allows to render content to another location in the DOM.</li>
+                            <li>Portal allows to insert the rendered content in another location in the DOM.</li>
                         </ul>
                     </UIAppTipHeading>
                 );

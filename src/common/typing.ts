@@ -1,61 +1,30 @@
 
 // - Imports - //
 
-import { Context } from "data-signals";
-import { Host, MixDOMTreeNode, MixDOMTreeNodeType } from "mix-dom";
-
-
-// - Settings and live state - //
-
-export type HostDebugSettings = {
-    /** Give an additional console to use for logging information. Will anyway log to the window where the debugger lives. */
-    console: Console | null;
-    // /** Whether listens to focus changes in the original host. If enabled (by giving the document root), displays a refresh button in the UI to scroll and select the related dom tree node. */
-    // focusSource: Document | null;
-}
-
-export type HostDebugLive = {
-    iUpdate: number;
-    // /** The main listener. */
-    // focusInListener?: (e: FocusEvent) => void;
-    // /** Not supported fully by some major browsers, eg. FireFox. */
-    // focusOutListener?: (e: FocusEvent) => void;
-}
+// Libraries.
+import type { Context } from "data-signals";
+import type { Host, MixDOMTreeNode, MixDOMTreeNodeType } from "mix-dom";
+// Shared.
+import type { HostDebugAppState, HostDebugSettings } from "../shared";
 
 
 // - Contexts - //
 
 export type DebugContextData = {
-    settings: HostDebugSettings;
-    live: HostDebugLive;
+    settings: HostDebugSettings & {};
     host: Host | null;
-    focusedId: DebugTreeItem["id"] | null;
+    iUpdate: number;
 };
 export type DebugContextSignals = {
     domFocus: (treeNode: MixDOMTreeNode | null) => void;
 };
 export type DebugContext = Context<DebugContextData, DebugContextSignals>;
-
-export const allTipSectionNames = ["heading", "code", "props", "state", "contexts", "settings", "rendered-by", "wired", "remote", "children", "renders"] as const;
-export type TipSectionNames = typeof allTipSectionNames[number];
-export type SettingsContextData = {
-    theme: "dark" | "light";
-    filter: string;
-    showCollapsed: boolean;
-    showParents: boolean;
-    showChildren: boolean;
-    hideUnmatched: boolean;
-    ignoreSelection: boolean;
-    ignoreFilter: boolean;
-    /** In "tip" mode clicking the row toggles the tip. In "select" clicking the row does selection. In "select-tip", clicking does selection, but hovering the row provides tip. */
-    rowMode: "select" | "select-tip" | "tip";
+export type StateContextData = HostDebugAppState & {
     // Computed from local state. The selected and collapsed ids are held in UIAppHostTree.
     shouldSelect: boolean;
     noneCollapsed: boolean;
-    // UI.
-    hiddenTipSections: TipSectionNames[];
 };
-export type SettingsContextSignals = {
+export type StateContextSignals = {
     /** Handled by UIAppHostTree. */
     scrollToMatched: (toPrevious?: boolean, withinCollapsed?: boolean) => void;
     /** Handled by UIAppHostTree. */
@@ -64,13 +33,25 @@ export type SettingsContextSignals = {
     toggleSelectMatched: (includeRelated?: boolean) => void;
     /** Handled by UIAppHostTree. */
     setTipDisplay: (treeNode: MixDOMTreeNode | null) => void;
+    /** Handled by UIAppHostTree. */
+    modifySelected: (ids: MixDOMTreeNode[], mode: "reset" | "invert" | "add" | "remove") => void;
+    /** Handled by UIAppHostTree. */
+    modifyCollapsed: (ids: MixDOMTreeNode[], mode: "reset" | "invert" | "add" | "remove") => void;
+    /** Handled by UIAppHostTree. */
+    modifySubHosts: (hostsOrToggle: boolean | Host[]) => void;
+
+    /** Handled by MixDOMDebug. */
+    connectSubHost: (host: Host, refresh?: boolean) => void;
+    /** Handled by MixDOMDebug. */
+    disconnectSubHost: (host: Host, refresh?: boolean) => void;
+    /** Handled by MixDOMDebug. */
     toggleTheme: () => void;
 };
-export type SettingsContext = Context<SettingsContextData, SettingsContextSignals>;
+export type StateContext = Context<StateContextData, StateContextSignals>;
 
 export type AppContexts = {
     debug: DebugContext;
-    settings: SettingsContext;
+    state: StateContext;
 }
 
 

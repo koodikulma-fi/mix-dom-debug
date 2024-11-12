@@ -34,7 +34,13 @@
       "require": "./mix-dom-debug.js",
       "script": "./MixDOMDebug.js"
     },
-    "./package.json": "./package.json"
+    "./package.json": "./package.json",
+    "./launcher": {
+      "types": "./launcher.d.ts",
+      "import": "./launcher.module.js",
+      "require": "./launcher.js",
+      "script": "./launcher.global.js"
+    }
   },
   "files": [
     "dist",

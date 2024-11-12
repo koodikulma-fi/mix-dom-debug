@@ -338,6 +338,9 @@
 .style-text-underline {
     text-decoration: underline;
 }
+.style-text-no-decoration {
+    text-decoration: none;
+}
 .style-text-small {
     font-size: 85%;
     opacity: var(--opacity-faint);

@@ -10,9 +10,13 @@ h1, h2, h3, h4, h5, h6 {
     padding: 0;
     /* padding: var(--layout-gap-m); */
 }
+p {
+    margin: var(--layout-gap-l);
+}
 body {
     font-size: 16px;
 }
+a { color: currentColor; white-space: nowrap; }
 
 /* - - Hacky for prettify - - */
 
@@ -312,6 +316,7 @@ body {
 .style-ui-list > li {
     margin: var(--layout-gap-s);
     padding: var(--layout-gap-s) var(--layout-gap-m);
+    list-style-type: none;
 }
 
 
@@ -329,7 +334,7 @@ body {
 .style-ui-concept {
     flex-shrink: 0;
     font-weight: bold;
-    font-size: 15px; /* TEST..! */
+    /*font-size: 15px; /* TEST..! */
     padding: var(--layout-gap-s) var(--layout-gap-m);
     border: var(--layout-edge-s) solid var(--color-overlay-black-l);
     color: var(--color-stroke-alt-strong);
@@ -342,6 +347,17 @@ body {
     padding: var(--layout-gap-m) 0;
 }
 
+.style-ui-heading.main {
+    font-size: 200%;
+}
+
+
+/* - - Common look: style-ui-blog - - */
+
+.style-ui-blog {
+    max-width: 800px;
+    font-size: 120%;
+}
 
 
 /* - - Extra app colors - - */

@@ -14,27 +14,12 @@ import { UIAppTipSection, renderComponentLinkTip } from "./UIAppTipSection";
 import { beautify, stringifyObject, Prettify } from "./beautifyHelpers";
 
 
-// - Helpers - //
+// - Typing - //
 
 export type OnItemLink = (id: DebugTreeItem["id"] | null, mode?: "focus" | "details" | "details-only" | "details-break" | "log") => void;
 
-export function readComponentOneLine(treeNode: MixDOMTreeNodeBoundary | MixDOMTreeNodePass, onPress?: ((e: MouseEvent | KeyboardEvent) => void) | null, skipContentStartStr?: boolean): MixDOMRenderOutput {
-    // Boundary.
-    if (treeNode.type === "boundary")
-        return <>
-            <ComponentLink name={treeNode.def.tag.name || "Anonymous"} onPress={onPress || undefined} />
-            <Prettify code={treeNode.def.tag.toString()} className="style-text-ellipsis" />
-        </>;
-    // Remote content pass.
-    const [phrase, sBoundary] = getPassPhaseAndSource(treeNode);
-    // Content pass.
-    const name = sBoundary && sBoundary._outerDef.tag.name || "Anonymous";
-    return <>
-        {skipContentStartStr ? null : <span _key="pass" class="style-color-dim">{onPress ? <ComponentLink name={phrase} onPress={onPress} /> : phrase}</span>}
-        <span _key="from" class="style-color-dim">{" from "}</span>
-        <b>{name}</b>
-    </>;
-}
+
+// - Structure helpers - //
 
 export function getGroundingTreeNode(treeNode: MixDOMTreeNode): MixDOMTreeNodeBoundary | MixDOMTreeNodePass | null {
     // Loop up.
@@ -52,6 +37,27 @@ export function getGroundingTreeNode(treeNode: MixDOMTreeNode): MixDOMTreeNodeBo
     }
     // Not found.
     return null;
+}
+
+
+// - Render helpers - //
+
+export function readComponentOneLine(treeNode: MixDOMTreeNodeBoundary | MixDOMTreeNodePass, onPress?: ((e: MouseEvent | KeyboardEvent) => void) | null, skipContentStartStr?: boolean): MixDOMRenderOutput {
+    // Boundary.
+    if (treeNode.type === "boundary")
+        return <>
+            <ComponentLink name={treeNode.def.tag.name || "Anonymous"} onPress={onPress || undefined} />
+            <Prettify code={treeNode.def.tag.toString()} className="style-text-ellipsis" />
+        </>;
+    // Remote content pass.
+    const [phrase, sBoundary] = getPassPhaseAndSource(treeNode);
+    // Content pass.
+    const name = sBoundary && sBoundary._outerDef.tag.name || "Anonymous";
+    return <>
+        {skipContentStartStr ? null : <span _key="pass" class="style-color-dim">{onPress ? <ComponentLink name={phrase} onPress={onPress} /> : phrase}</span>}
+        <span _key="from" class="style-color-dim">{" from "}</span>
+        <b>{name}</b>
+    </>;
 }
 
 
@@ -112,7 +118,7 @@ export function RenderComponentWiredChildren(props: { wired: Set<ComponentWiredT
 
 export function RenderComponentRemoteChildren(props: { remote: ComponentRemote; remotePasses?: MixDOMTreeNodePass[]; onItemLink?: OnItemLink; }) {
     const remote = props.remote;
-    const links = props.remotePasses || remote.getHost().findTreeNodes(["pass"], 0, false, (tNode => (tNode as MixDOMTreeNodePass).def.getRemote && (tNode as MixDOMTreeNodePass).def.getRemote!() === remote)) as MixDOMTreeNodePass[];
+    const links = props.remotePasses || remote.getHost().findTreeNodes(["pass"], 0, true, (tNode => (tNode as MixDOMTreeNodePass).def.getRemote && (tNode as MixDOMTreeNodePass).def.getRemote!() === remote)) as MixDOMTreeNodePass[];
     return !links[0] ? null : <ul class="style-ui-list">
         {[...links].map((tNode, i) => 
             <li _key={tNode} class="flex-row flex-align-items-baseline layout-gap-l" >

@@ -5,14 +5,15 @@
 import { classNames, CSSProperties, readDOMString } from "dom-types";
 import { createMemo } from "data-memo";
 import { SignalListenerFlags } from "data-signals";
-import { MixDOM, Host, ComponentCtxFunc, hasContentInDefs, MixDOMTreeNode, ComponentTypeWith, PseudoPortalProps, SourceBoundary } from "mix-dom";
+import { MixDOM, Host, ComponentCtxFunc, MixDOMTreeNode, PseudoPortalProps, SourceBoundary, ComponentWith } from "mix-dom";
 // Common.
-import { flattenTreeWith, AppContexts, DebugTreeItem, HostDebugLive, HostDebugSettings, consoleLog, DebugTreeItemType, getItemTypeFrom, getPassPhaseAndSource } from "../../../common/index";
-// UI library.
+import { HostDebugSettings } from "../../../shared";
+// Common in UI.
+import { flattenTreeWith, AppContexts, DebugTreeItem, DebugTreeItemType, getItemTypeFrom, getPassPhaseAndSource, consoleLogItem } from "../../../common/index";
 import { UIList, UIVirtualListInfo } from "../../library/index";
 // Local.
-import { UIAppTreeItem, UIAppTreeItemInfo } from "./tree/UIAppTreeItem";
-import { UIAppShowTip } from "./tree/UIAppShowTip";
+import { UIAppTreeItem, UIAppTreeItemInfo } from "./tree/index";
+import { UIAppShowTip } from "./display/index";
 
 
 // - Local helpers - //
@@ -45,7 +46,22 @@ function getDocBodyBy(treeNode: MixDOMTreeNode): HTMLElement | null {
 }
 
 function matchesFilter(item: Item, filterSplits: string[][]): boolean {
-    return (filterSplits && filterSplits.some(splits => splits.every(s => item.name.toLowerCase().includes(s) || item.description.toLowerCase().includes(s) || ((itemFilterTypeStrings[item.treeNode.def?.getRemote ? "pass-remote" : getItemTypeFrom(item.treeNode)] || "").includes(s)))))
+    return (filterSplits && filterSplits.some(splits => splits.every(s => (item.name || (item.treeNode.type === "boundary" && "Anonymous" || "")).toLowerCase().includes(s) || item.description.toLowerCase().includes(s) || ((itemFilterTypeStrings[item.treeNode.def?.getRemote ? "pass-remote" : getItemTypeFrom(item.treeNode)] || "").includes(s)))))
+}
+
+function modifyIds(existing: Item["id"][], modIds: Item["id"][], mode: "reset" | "invert" | "add" | "remove", allIds: Item["id"][]): Item["id"][] {
+    switch(mode) {
+        case "reset":
+            return modIds.filter(id => allIds.includes(id));
+        case "invert":
+            return allIds.filter(id => !modIds.includes(id));
+        case "add":
+            return existing.concat(modIds.filter(id => !existing.includes(id) && allIds.includes(id)));
+        case "remove":
+            return existing.filter(id => !modIds.includes(id));
+        default:
+            return existing.slice();
+    }
 }
 
 function isItemWithinCollapsed(item: Item, collapsed: Item["id"][]): boolean {
@@ -117,8 +133,8 @@ export interface UIAppHostTreeInfo {
     props: { refreshId?: any; className?: string; listClassName?: string; style?: CSSProperties; };
     state: {
         host: Host | null;
-        debugSettings: HostDebugSettings | null;
-        debugLive: HostDebugLive | null;
+        settings: HostDebugSettings | null;
+        iUpdate: number;
         selected: Item["id"][];
         collapsed: Item["id"][];
         tipItem: Item | null;
@@ -131,6 +147,9 @@ export interface UIAppHostTreeInfo {
         /** In "tip" mode clicking the row toggles the tip. In "select" clicking the row does selection. In "select-tip", clicking does selection, but hovering the row provides tip. */
         rowMode: "select" | "select-tip" | "tip";
         hideUnmatched: boolean;
+        // Special.
+        includeAllSubHosts: boolean;
+        includedSubHosts: Host[];
         reselectRefreshId: {};
     };
     class: {
@@ -149,8 +168,8 @@ export const UIAppHostTree: ComponentCtxFunc<UIAppHostTreeInfo> = function Debug
     comp.iMatchCycle = -1;
     comp.state = {
         host: null,
-        debugSettings: null,
-        debugLive: null,
+        settings: null,
+        iUpdate: 0,
         selected: [],
         collapsed: [],
         tipItem: null,
@@ -162,7 +181,9 @@ export const UIAppHostTree: ComponentCtxFunc<UIAppHostTreeInfo> = function Debug
         ignoreFilter: false,
         rowMode: "select-tip",
         hideUnmatched: false,
-        reselectRefreshId: {}
+        includeAllSubHosts: false,
+        includedSubHosts: [],
+        reselectRefreshId: {},
     };
 
 
@@ -171,15 +192,15 @@ export const UIAppHostTree: ComponentCtxFunc<UIAppHostTreeInfo> = function Debug
     cApi.listenToData(
         "debug.host",
         "debug.settings",
-        "debug.live",
-        "settings",
-        (host, debugSettings, debugLive, settings) => {
-            const setup = settings || { filter: "", ...comp.state };
+        "debug.iUpdate",
+        "state",
+        (host, settings, iUpdate, appState) => {
+            const setup = appState || { filter: "", ...comp.state };
             const filterSplits = setup.filter.replace(/\,/g, " ").trim() ? setup.filter.split(",").map(s => s.trim().split(" ").map(p => p.trim().toLowerCase()).filter(p => p)).filter(splits => splits[0] !== undefined) : null;
             comp.setState({
                 host,
-                debugSettings,
-                debugLive,
+                settings,
+                iUpdate,
                 filterSplits: filterSplits && filterSplits[0] !== undefined && filterSplits || null,
                 showCollapsed: setup.showCollapsed,
                 showParents: setup.showParents,
@@ -190,13 +211,13 @@ export const UIAppHostTree: ComponentCtxFunc<UIAppHostTreeInfo> = function Debug
                 rowMode: setup.rowMode,
             });
         },
-        [comp.state.host, comp.state.debugSettings, comp.state.debugLive]
+        [comp.state.host, comp.state.settings, comp.state.iUpdate]
     );
     
 
     // - Common - //
 
-    const refVirtualList = new MixDOM.Ref<ComponentTypeWith<UIVirtualListInfo>>;
+    const refVirtualList = new MixDOM.Ref<ComponentWith<UIVirtualListInfo>>;
     const rowHeight = 30;
     type CommonProps = Partial<{ debugInfo?: HostDebugSettings | null; iUpdate?: number; }> & Omit<UIAppTreeItemInfo["props"], "item">;
     const getCommonProps = createMemo((debugInfo: HostDebugSettings | null, iUpdate?: number, rowMode?: UIAppHostTreeInfo["state"]["rowMode"]): CommonProps => ({
@@ -211,21 +232,54 @@ export const UIAppHostTree: ComponentCtxFunc<UIAppHostTreeInfo> = function Debug
         onTipPresence,
     }));
 
-    const getRefreshId = createMemo((...args: any[]) => ({}));
-    //
-    //
-    // <-- TODO: Take into use.
+    // No longer in use.
+    // /** Get refresh id for the virtual list. */
+    // const getListRefreshId = createMemo((...args: any[]) => ({}));
+
+
+    // - Hosts - //
+
+    const toggleSubHost = (host: Host, toggleOn?: boolean | null | "mode") => {
+        // Remove.
+        if (comp.state.includedSubHosts.includes(host)) {
+            if (toggleOn === true)
+                return;
+            cApi.sendSignal("state.disconnectSubHost", host);
+            comp.setInState("includedSubHosts", comp.state.includedSubHosts.filter(h => h !== host));
+            toggleOn === "mode" && comp.setInState("includeAllSubHosts", false);
+        }
+        // Add.
+        else {
+            if (toggleOn === false)
+                return;
+            cApi.sendSignal("state.connectSubHost", host);
+            comp.setInState("includedSubHosts", comp.state.includedSubHosts.concat([host]));
+            toggleOn === "mode" && comp.setInState("includeAllSubHosts", true);
+        }
+    }
+
+    // External driving.
+    cApi.listenTo("state.modifySubHosts", (subHosts) => {
+        if (typeof subHosts === "boolean") {
+            // Exclude.
+            !subHosts && comp.state.includedSubHosts.forEach(host => toggleSubHost(host, false));
+            // Set basic mode - it will trigger a refresh, which will handle the rest when enabling.
+            comp.setInState("includeAllSubHosts", subHosts);
+        }
+        else {
+            const allHosts = comp.state.host && comp.state.host.findTreeNodes(["host"], 0, true).map(treeNode => treeNode.def && treeNode.def.host).filter(h => h) || [];
+            comp.setState({ includedSubHosts: subHosts.filter(host => allHosts.includes(host))});
+        }
+    });
     
 
     // - Items - //
 
     // Re-triggered whenever the iUpdate arg has changed.
-    const itemsByUpdate = createMemo((host: Host | null, _iUpdate?: number): DebugTreeItem[] => {
+    const itemsByUpdate = createMemo((host: Host | null, includedSubHosts: Host[], includeAllSubHosts: boolean, _iUpdate?: number): DebugTreeItem[] => {
 
-        if (!host)
-            return [];
-
-        const items = flattenTreeWith([host.groundedTree], (treeNode, parent: DebugTreeItem | null, level): DebugTreeItem => {
+        const staleHosts: Set<Host> | null = includedSubHosts[0] ? new Set(includedSubHosts) : null;
+        const items = flattenTreeWith(host ? [host.groundedTree] : [], (treeNode, parent: DebugTreeItem | null, level, ignoreKids: () => void): DebugTreeItem | null => {
             // let id = "";
             let description = "";
             let name = "";
@@ -279,9 +333,20 @@ export const UIAppHostTree: ComponentCtxFunc<UIAppHostTreeInfo> = function Debug
                         description = readDOMString(el ? el.tagName.toLowerCase() : "", null, false, el).replace("/>", ">");
                     break;
                 }
-                case "host":
+                case "host": {
+                    // Name.
                     name = "Host";
+                    // Presence.
+                    const host = treeNode.def.host!;
+                    staleHosts && staleHosts.delete(host);
+                    // Inclusion.
+                    const isIncluded = includedSubHosts.includes(host);
+                    !isIncluded && ignoreKids();
+                    // Auto-toggle.
+                    if (includeAllSubHosts && !isIncluded)
+                        toggleSubHost(host, true);
                     break;
+                }
                 case "portal": {
                     name = "Portal";
                     const container = (treeNode.def.props as PseudoPortalProps || {}).container as HTMLElement | null | undefined;
@@ -319,13 +384,19 @@ export const UIAppHostTree: ComponentCtxFunc<UIAppHostTreeInfo> = function Debug
         const selected = comp.state.selected.filter(id => allIds.includes(id));
         if (selected.length !== comp.state.selected.length)
             setSelected(selected);
+        // .. Correct disappeared hosts.
+        if (staleHosts && staleHosts.size) {
+            for (const h of staleHosts)
+                cApi.sendSignal("state.disconnectSubHost", h);
+            comp.setInState("includedSubHosts", comp.state.includedSubHosts.filter(h => !staleHosts.has(h)));
+        }
 
         // Return items.
         return items;
     });
 
     // Get initial.
-    let allItems = itemsByUpdate(comp.state.host, comp.state.debugLive?.iUpdate || 0);
+    let allItems = itemsByUpdate(comp.state.host, comp.state.includedSubHosts, comp.state.includeAllSubHosts, comp.state.iUpdate);
 
 
     // - Collapsing - //
@@ -339,7 +410,7 @@ export const UIAppHostTree: ComponentCtxFunc<UIAppHostTreeInfo> = function Debug
     const setCollapsed = (collapsed: Item["id"][]) => {
         const noneWereCollapsed = areNoneCollapsed();
         if (areNoneCollapsed(collapsed) !== noneWereCollapsed)
-            cApi.setInData("settings.noneCollapsed", !noneWereCollapsed);
+            cApi.setInData("state.noneCollapsed", !noneWereCollapsed);
         comp.setInState("collapsed", collapsed);
     }
 
@@ -349,7 +420,7 @@ export const UIAppHostTree: ComponentCtxFunc<UIAppHostTreeInfo> = function Debug
 
     const toggleConcept = (concept: DebugTreeItemType, reset?: boolean) => {
         // Prepare.
-        let filter = cApi.getInData("settings.filter", "");
+        let filter = cApi.getInData("state.filter", "");
         const cStr = "[" + concept + "]";
         let splits = filter ? filter.split(",") : [];
         const lowSplits = splits.map(s => s.trim().toLowerCase());
@@ -373,12 +444,17 @@ export const UIAppHostTree: ComponentCtxFunc<UIAppHostTreeInfo> = function Debug
         else
             iAlready !== -1 ? splits.splice(iAlready, 1) : splits.push(splits[0] === undefined ? cStr : " " + cStr);
         // Set.
-        cApi.setInData("settings.filter", splits.join(","));
+        cApi.setInData("state.filter", splits.join(","));
     };
 
     // When the master collapse toggle is pressed, either collapse all or uncollapse all.
-    cApi.listenTo("settings.toggleCollapseAll", () => {
+    cApi.listenTo("state.toggleCollapseAll", () => {
         setCollapsed(areNoneCollapsed() ? allItems.filter(item => item.children && item.children[0] !== undefined).map(item => item.id) : []);
+    });
+
+    // External driving.
+    cApi.listenTo("state.modifyCollapsed", (collapsed, mode) => {
+        setCollapsed(modifyIds(comp.state.collapsed, collapsed, mode, allItems.map(item => item.treeNode)));
     });
 
 
@@ -408,7 +484,7 @@ export const UIAppHostTree: ComponentCtxFunc<UIAppHostTreeInfo> = function Debug
         const filterSplits = comp.state.filterSplits;
         const shouldSelect = filterSplits && matchedItems ? matchedItems.some(item => !selected.includes(item.id) && matchesFilter(item, filterSplits)) : selected[0] === undefined;
         if (shouldSelect !== shouldSelectWas)
-            cApi.setInData("settings.shouldSelect", shouldSelectWas = shouldSelect);
+            cApi.setInData("state.shouldSelect", shouldSelectWas = shouldSelect);
         // Set.
         comp.setInState("selected", selected);
     }
@@ -417,7 +493,7 @@ export const UIAppHostTree: ComponentCtxFunc<UIAppHostTreeInfo> = function Debug
         setSelected(findItemsIdsBy(item, mode || "self", comp.state.selected, allItems));
     };
 
-    cApi.listenTo("settings.toggleSelectMatched", (allVisible) => {
+    cApi.listenTo("state.toggleSelectMatched", (allVisible) => {
         // Prepare.
         let selIds: Item["id"][] = [];
         // Use matched.
@@ -441,10 +517,15 @@ export const UIAppHostTree: ComponentCtxFunc<UIAppHostTreeInfo> = function Debug
         setSelected(selIds);
     });
 
+    // External driving.
+    cApi.listenTo("state.modifySelected", (selected, mode) => {
+        setSelected(modifyIds(comp.state.selected, selected, mode, allItems.map(item => item.treeNode)));
+    });
+
 
     // - Scroll to matched - //
 
-    cApi.listenTo("settings.scrollToMatched", (toPrevious, withinCollapsed) => {
+    cApi.listenTo("state.scrollToMatched", (toPrevious, withinCollapsed) => {
         // Cannot.
         const okItems = matchedItems ? withinCollapsed || comp.state.showCollapsed ? matchedItems : matchedItems.filter(item => !isItemWithinCollapsed(item, comp.state.collapsed)) : [];
         if (!okItems[0])
@@ -493,7 +574,7 @@ export const UIAppHostTree: ComponentCtxFunc<UIAppHostTreeInfo> = function Debug
                 break;
             }
             case "log":
-                item && consoleLog(comp.state.debugSettings, "MixDOMDebug: Log item", item.treeNode);
+                item && consoleLogItem(comp.state.settings, item);
                 break;
         }
     };
@@ -642,7 +723,7 @@ export const UIAppHostTree: ComponentCtxFunc<UIAppHostTreeInfo> = function Debug
         comp.clearTimers("tip-hover", "skip-hover");
         comp.setState({ tipItem: treeNode ? allItems.find(it => it.id === treeNode) || null : null, reselectRefreshId: useRefreshId ? {} : comp.state.reselectRefreshId });
     }
-    cApi.listenTo("settings.setTipDisplay", setTipBy);
+    cApi.listenTo("state.setTipDisplay", setTipBy);
     const onToggleTip = (treeNode: Item["id"] | null) => {
         setTipBy(comp.state.tipItem?.treeNode === treeNode ? null : treeNode);
     };
@@ -697,7 +778,7 @@ export const UIAppHostTree: ComponentCtxFunc<UIAppHostTreeInfo> = function Debug
 
     const Wired = MixDOM.wired<{ item: Item; }, CommonProps>(
         // Builder.
-        () => getCommonProps(comp.state.debugSettings, comp.state.debugLive?.iUpdate, comp.state.rowMode),
+        () => getCommonProps(comp.state.settings, comp.state.iUpdate, comp.state.rowMode),
         // Mixer.
         (parentProps, buildProps, _wired) => {
             const item = parentProps.item;
@@ -725,13 +806,13 @@ export const UIAppHostTree: ComponentCtxFunc<UIAppHostTreeInfo> = function Debug
         // Pre.
         let mWas = matchedItems;
         // Update.
-        allItems = itemsByUpdate(comp.state.host, comp.state.debugLive?.iUpdate || 0);
+        allItems = itemsByUpdate(comp.state.host, comp.state.includedSubHosts, comp.state.includeAllSubHosts, comp.state.iUpdate);
         matchedItems = getMatchedItems(allItems, !comp.state.ignoreSelection && comp.state.selected[0] !== undefined ? comp.state.selected : null, !comp.state.ignoreFilter ? comp.state.filterSplits : null);
         matchedParentItems = matchedItems && comp.state.showParents ? getMatchedParents(matchedItems) : null;
         matchedChildrenItems = matchedItems && comp.state.showChildren ? getMatchedChildren(allItems, matchedItems) : null;
         // In case changed.
         if (mWas !== matchedItems && shouldSelectWas !== whetherShouldSelect())
-            cApi.setInData("settings.shouldSelect", shouldSelectWas = !shouldSelectWas);
+            cApi.setInData("state.shouldSelect", shouldSelectWas = !shouldSelectWas);
     };
     comp.listenTo("beforeUpdate", beforeUpdate);
 
@@ -750,20 +831,23 @@ export const UIAppHostTree: ComponentCtxFunc<UIAppHostTreeInfo> = function Debug
                     keyProp="id"
                     filter={filterer}
                     rowHeight={rowHeight}
-                    refreshId={{}} // TODO: getRefreshId(allItems, matchedItems, matchedParentItems, matchedChildrenItems, state.collapsed, iUpdate, state.selected, state.filterSplits, state.showCollapsed, state.hideUnmatched)}
+                    refreshId={{}} // There's so many cases, when we should update the virtual list, so we just do it always.
                     listClassName={props.listClassName}
                     refVirtualList={refVirtualList}
                 />
             </div>
             <UIAppShowTip
                 item={state.tipItem}
-                iUpdate={state.debugLive?.iUpdate}
+                iUpdate={state.iUpdate}
                 onItemLink={onItemLink}
                 getSourceElement={getTipSourceElement}
-                debugInfo={state.debugSettings}
+                debugInfo={state.settings}
                 reselectRefreshId={state.reselectRefreshId}
                 onTipPresence={onTipPresence}
                 rowMode={state.rowMode}
+                includedSubHosts={state.includedSubHosts}
+                includeAllHosts={state.includeAllSubHosts}
+                toggleSubHost={toggleSubHost}
             />
         </div>
     };

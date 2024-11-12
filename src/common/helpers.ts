@@ -2,7 +2,8 @@
 // - Imports - //
 
 import { MixDOM, MixDOMRenderOutput, MixDOMTreeNode, MixDOMTreeNodePass, SourceBoundary } from "mix-dom";
-import { DebugTreeItemType, HostDebugSettings } from "./typing";
+import { HostDebugSettings } from "../shared";
+import { DebugTreeItem, DebugTreeItemType } from "./typing";
 import { classNames } from "dom-types";
 
 
@@ -34,15 +35,37 @@ export function consoleLog(debugInfo: HostDebugSettings | null | undefined, ...a
     console.log(...args);
     debugInfo && debugInfo.console && debugInfo.console.log(...args);
 }
-export const wrapTip = (...contents: MixDOMRenderOutput[]) => 
-    MixDOM.def("div", { class: classNames("style-ui-panel flex-col layout-gap-l"), style: "min-width: 100px;" }, ...contents);
-
-export function computeSnappedValue(snapStep: number, value: number): number {
-    if (!snapStep)
-        return value;
-    // For better float rounding, use `/ (1.0 / snapStep)` instead of `* snapStep`.
-    return snapStep ? Math.round(value / snapStep) / (1.0 / snapStep) : value;
+export function consoleWarn(debugInfo: HostDebugSettings | null | undefined, ...args: any[]): void {
+    console.warn(...args);
+    debugInfo && debugInfo.console && debugInfo.console.warn(...args);
 }
+
+export const consoleLogItem = (debugInfo: HostDebugSettings | null | undefined, item: DebugTreeItem): void => {
+    switch(item.treeNode.type) {
+        case "boundary":
+            consoleLog(debugInfo, "MixDOMDebug: Log component", item.treeNode.boundary.component);
+            break;
+        case "root":
+        case "dom":
+        case "portal":
+            consoleLog(debugInfo, "MixDOMDebug: Log DOM element", item.treeNode.domNode);
+            break;
+        case "host":
+            consoleLog(debugInfo, "MixDOMDebug: Log nested host", item.treeNode.def.host);
+            break;
+        default:
+            consoleLog(debugInfo, "MixDOMDebug: Log treeNode", item.treeNode);
+            break;
+    }
+};
+
+
+// export function computeSnappedValue(snapStep: number, value: number): number {
+//     if (!snapStep)
+//         return value;
+//     // For better float rounding, use `/ (1.0 / snapStep)` instead of `* snapStep`.
+//     return snapStep ? Math.round(value / snapStep) / (1.0 / snapStep) : value;
+// }
 
 /** Helper to read array like properties from an object, optionally only certain kind of arrays. */
 export type ArrLikePropsOf<T extends Record<string, any>, Arr extends any[] = any[]> = { [Key in string & keyof T]: T[Key] extends Arr ? Key : never; }[string & keyof T];
@@ -71,9 +94,9 @@ export function flattenTree<Item extends Partial<Record<string, Item[]>>>(rootIt
 }
 
 /** Helper to flatten a tree. */
-export function flattenTreeWith<Item extends Partial<Record<ChildProp, Item[]>>, FinalItem, ChildProp extends string & ArrLikePropsOf<Item, Item[]>, PItem extends FinalItem = FinalItem>(rootItems: Item[], itemHandler: (origItem: Item, parent: PItem | null, level: number) => FinalItem, childProp: ChildProp): PItem[];
-export function flattenTreeWith<Item extends Partial<Record<"children", Item[]>>, FinalItem, PItem extends FinalItem = FinalItem>(rootItems: Item[], itemHandler: (origItem: Item, parent: PItem | null, level: number) => FinalItem, childProp?: "children"): PItem[];
-export function flattenTreeWith<Item extends Partial<Record<string, Item[]>>, FinalItem, PItem extends FinalItem = FinalItem>(rootItems: Item[], itemHandler: (origItem: Item, parent: PItem | null, level: number) => FinalItem, childProp?: string, ): PItem[] {
+export function flattenTreeWith<Item extends Partial<Record<ChildProp, Item[]>>, FinalItem, ChildProp extends string & ArrLikePropsOf<Item, Item[]>, PItem extends FinalItem = FinalItem>(rootItems: Item[], itemHandler: (origItem: Item, parent: PItem | null, level: number, ignoreKids: () => void) => FinalItem | null, childProp: ChildProp): PItem[];
+export function flattenTreeWith<Item extends Partial<Record<"children", Item[]>>, FinalItem, PItem extends FinalItem = FinalItem>(rootItems: Item[], itemHandler: (origItem: Item, parent: PItem | null, level: number, ignoreKids: () => void) => FinalItem | null, childProp?: "children"): PItem[];
+export function flattenTreeWith<Item extends Partial<Record<string, Item[]>>, FinalItem, PItem extends FinalItem = FinalItem>(rootItems: Item[], itemHandler: (origItem: Item, parent: PItem | null, level: number, ignoreKids: () => void) => FinalItem | null, childProp?: string, ): PItem[] {
     // Clean params.
     if (!childProp)
         childProp = "children";
@@ -84,11 +107,21 @@ export function flattenTreeWith<Item extends Partial<Record<string, Item[]>>, Fi
     let pair: ItemPair | undefined;
     let i = 0;
     // Loop all in tree order.
+    let skipKids = false;
+    const ignoreKids = () => skipKids = true;
     while (pair = loopPairs[i++]) {
+        // Get.
         const [origItem, parent, level] = pair;
-        const item = itemHandler(origItem, parent, level) as PItem;
+        const item = itemHandler(origItem, parent, level, ignoreKids) as PItem | null;
+        // Skip.
+        if (!item)
+            continue;
+        // Add.
         items.push(item);
-        if (origItem[childProp]) {
+        // Add kids.
+        if (skipKids)
+            skipKids = false;
+        else if (origItem[childProp]) {
             const nextLevel = level + 1;
             loopPairs = origItem[childProp]!.map((kid: Item): ItemPair => [kid, item, nextLevel]).concat(loopPairs.slice(i));
             i = 0;

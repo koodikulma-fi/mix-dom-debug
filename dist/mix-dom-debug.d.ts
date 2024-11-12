@@ -1,33 +1,25 @@
 import * as mix_dom from 'mix-dom';
-import { Host, MixDOMTreeNode, MixDOMTreeNodeType, MixDOMDefTarget, MixDOMTreeNodePass, SourceBoundary, MixDOMRenderOutput, ComponentRemoteType, ComponentTypeEither, Ref, ComponentTypeWith, ComponentProps, ComponentWith, ComponentFuncReturn, ComponentFunc, ComponentWiredFunc, MixDOMProps, Component, ComponentCtxFunc } from 'mix-dom';
+import { Host, MixDOMTreeNode, MixDOMTreeNodeType, MixDOMDefTarget, MixDOMTreeNodePass, SourceBoundary, ComponentRemoteType, MixDOMRenderOutput, ComponentTypeEither, Ref, ComponentWith, ComponentProps, ComponentFuncReturn, ComponentFunc, ComponentWiredFunc, MixDOMProps, Component, MixDOMTreeNodeBoundary, ComponentWiredType, ComponentRemote, ComponentCtxFunc } from 'mix-dom';
 import { ClassType } from 'mixin-types';
 import { Context } from 'data-signals';
 import * as dom_types from 'dom-types';
 import { CSSProperties, DOMTags, DOMElement } from 'dom-types';
 import * as dom_types_camelCase from 'dom-types/camelCase';
 import { HTMLAttributes } from 'dom-types/camelCase';
-import { ComponentCtxFunc as ComponentCtxFunc$1 } from 'mix-dom/camelCase';
+import { Host as Host$1, ComponentCtxFunc as ComponentCtxFunc$1 } from 'mix-dom/camelCase';
 
-type HostDebugSettings = {
+interface HostDebugSettings {
     /** Give an additional console to use for logging information. Will anyway log to the window where the debugger lives. */
     console: Console | null;
-};
-type HostDebugLive = {
-    iUpdate: number;
-};
-type DebugContextData = {
-    settings: HostDebugSettings;
-    live: HostDebugLive;
-    host: Host | null;
-    focusedId: DebugTreeItem["id"] | null;
-};
-type DebugContextSignals = {
-    domFocus: (treeNode: MixDOMTreeNode | null) => void;
-};
-type DebugContext = Context<DebugContextData, DebugContextSignals>;
-declare const allTipSectionNames: readonly ["heading", "code", "props", "state", "contexts", "settings", "rendered-by", "wired", "remote", "children", "renders"];
-type TipSectionNames = typeof allTipSectionNames[number];
-type SettingsContextData = {
+}
+/** This type contains partial HostDebugSettings and a few initial settings only used on start up (rootElement and cssUrl). */
+interface HostDebugSettingsInit extends Partial<HostDebugSettings> {
+    /** App root element or selector. If null, creates an element with "app-root" id and puts it inside `document.body`. */
+    rootElement?: string | Element | null;
+    /** Url for loading up the css file for the app. Defaults to: https://unpkg.com/mix-dom-debug/MixDOMDebug.css */
+    cssUrl?: string;
+}
+interface HostDebugAppState {
     theme: "dark" | "light";
     filter: string;
     showCollapsed: boolean;
@@ -38,11 +30,36 @@ type SettingsContextData = {
     ignoreFilter: boolean;
     /** In "tip" mode clicking the row toggles the tip. In "select" clicking the row does selection. In "select-tip", clicking does selection, but hovering the row provides tip. */
     rowMode: "select" | "select-tip" | "tip";
+    hiddenTipSections: TipSectionNames[];
+}
+interface HostDebugAppStateUpdate extends Partial<HostDebugAppState> {
+    selected?: _MixDOMTreeNode[];
+    collapsed?: _MixDOMTreeNode[];
+    includedSubHosts?: _Host[] | boolean;
+}
+type TipSectionNames = "heading" | "code" | "props" | "state" | "contexts" | "settings" | "rendered-by" | "wired" | "remote" | "children" | "renders";
+/** Simplified version of MixDOMTreeNode. */
+interface _MixDOMTreeNode {
+    type: "dom" | "portal" | "boundary" | "pass" | "host" | "root";
+}
+interface _Host {
+    groundedTree: _MixDOMTreeNode;
+}
+
+type DebugContextData = {
+    settings: HostDebugSettings & {};
+    host: Host | null;
+    iUpdate: number;
+};
+type DebugContextSignals = {
+    domFocus: (treeNode: MixDOMTreeNode | null) => void;
+};
+type DebugContext = Context<DebugContextData, DebugContextSignals>;
+type StateContextData = HostDebugAppState & {
     shouldSelect: boolean;
     noneCollapsed: boolean;
-    hiddenTipSections: TipSectionNames[];
 };
-type SettingsContextSignals = {
+type StateContextSignals = {
     /** Handled by UIAppHostTree. */
     scrollToMatched: (toPrevious?: boolean, withinCollapsed?: boolean) => void;
     /** Handled by UIAppHostTree. */
@@ -51,12 +68,23 @@ type SettingsContextSignals = {
     toggleSelectMatched: (includeRelated?: boolean) => void;
     /** Handled by UIAppHostTree. */
     setTipDisplay: (treeNode: MixDOMTreeNode | null) => void;
+    /** Handled by UIAppHostTree. */
+    modifySelected: (ids: MixDOMTreeNode[], mode: "reset" | "invert" | "add" | "remove") => void;
+    /** Handled by UIAppHostTree. */
+    modifyCollapsed: (ids: MixDOMTreeNode[], mode: "reset" | "invert" | "add" | "remove") => void;
+    /** Handled by UIAppHostTree. */
+    modifySubHosts: (hostsOrToggle: boolean | Host[]) => void;
+    /** Handled by MixDOMDebug. */
+    connectSubHost: (host: Host, refresh?: boolean) => void;
+    /** Handled by MixDOMDebug. */
+    disconnectSubHost: (host: Host, refresh?: boolean) => void;
+    /** Handled by MixDOMDebug. */
     toggleTheme: () => void;
 };
-type SettingsContext = Context<SettingsContextData, SettingsContextSignals>;
+type StateContext = Context<StateContextData, StateContextSignals>;
 type AppContexts = {
     debug: DebugContext;
-    settings: SettingsContext;
+    state: StateContext;
 };
 interface TreeListItem<Item extends TreeListItem = any> {
     children?: Item[];
@@ -74,13 +102,34 @@ interface DebugTreeItem extends TreeListItem<DebugTreeItem> {
 }
 type IconNames = "" | "console" | "info" | "theme" | "close" | "back" | "forwards" | "expanded" | "collapsed" | "show-all" | "show-matched" | "scroll-to" | "select-all" | "select-none" | "no-selection" | "no-filter" | "click-select" | "click-select-tip" | "click-tip" | "filter" | "filter-collapsed" | "filter-expanded" | "filter-parents" | "filter-children" | "item-selected" | "item-deselected";
 
+/** Current app version. */
+declare const appVersion: "1.0.0";
+
+declare const appIcons: Record<IconNames, MixDOMDefTarget | null>;
+
+declare function getItemTypeFrom(treeNode: MixDOMTreeNode): DebugTreeItemType;
+declare function getPassPhaseAndSource(treeNode: MixDOMTreeNodePass): [phrase: string, sBoundary: SourceBoundary | null];
+declare function consoleLog(debugInfo: HostDebugSettings | null | undefined, ...args: any[]): void;
+declare function consoleWarn(debugInfo: HostDebugSettings | null | undefined, ...args: any[]): void;
+declare const consoleLogItem: (debugInfo: HostDebugSettings | null | undefined, item: DebugTreeItem) => void;
+/** Helper to read array like properties from an object, optionally only certain kind of arrays. */
+type ArrLikePropsOf<T extends Record<string, any>, Arr extends any[] = any[]> = {
+    [Key in string & keyof T]: T[Key] extends Arr ? Key : never;
+}[string & keyof T];
+/** Helper to flatten a tree. */
+declare function flattenTree<Item extends Partial<Record<ChildProp, Item[]>>, ChildProp extends string & ArrLikePropsOf<Item, Item[]>>(rootItems: Item[], childProp: ChildProp): Item[];
+declare function flattenTree<Item extends Partial<Record<"children", Item[]>>>(rootItems: Item[], childProp?: "children"): Item[];
+/** Helper to flatten a tree. */
+declare function flattenTreeWith<Item extends Partial<Record<ChildProp, Item[]>>, FinalItem, ChildProp extends string & ArrLikePropsOf<Item, Item[]>, PItem extends FinalItem = FinalItem>(rootItems: Item[], itemHandler: (origItem: Item, parent: PItem | null, level: number, ignoreKids: () => void) => FinalItem | null, childProp: ChildProp): PItem[];
+declare function flattenTreeWith<Item extends Partial<Record<"children", Item[]>>, FinalItem, PItem extends FinalItem = FinalItem>(rootItems: Item[], itemHandler: (origItem: Item, parent: PItem | null, level: number, ignoreKids: () => void) => FinalItem | null, childProp?: "children"): PItem[];
+
 interface MixDOMDebugType extends ClassType<MixDOMDebug, [container?: Element | null]> {
     /** Instance of the MixDOMDebug, once has started debugging. */
-    mixDOMDebug: MixDOMDebug | null;
+    debug: MixDOMDebug | null;
     /** Stop debugging the current host, if has one. */
     stopDebug: () => void;
     /** Start debugging the given host. */
-    startDebug: (host: Host, settings?: Partial<HostDebugSettings>) => MixDOMDebug;
+    startDebug: (host: Host, settings?: Partial<HostDebugSettings>, state?: Partial<HostDebugAppState>) => MixDOMDebug;
 }
 declare class MixDOMDebug {
     ["constructor"]: MixDOMDebugType;
@@ -93,44 +142,29 @@ declare class MixDOMDebug {
     /** Updates are delayed by a timer. */
     updateTimer: number | null;
     constructor(container?: Element | null);
-    setHost(host: Host, debugSettings?: Partial<HostDebugSettings> | null): void;
+    setHost(host: Host, debugSettings?: Partial<HostDebugSettings> | null, appState?: HostDebugAppStateUpdate | null): void;
     clearHost(): void;
+    updateSettings(debugSettings?: Partial<HostDebugSettings> | null, appState?: HostDebugAppStateUpdate | null): void;
     refresh(forceRefresh?: boolean): void;
     onUpdate: (cancelled?: boolean, host?: Host) => void;
-    getSettingsAndLive(settings?: Partial<HostDebugSettings> | null, iUpdate?: number): {
-        settings: HostDebugSettings;
-        live: HostDebugLive;
-    };
-    initialize(): void;
+    getSettings(settings?: Partial<HostDebugSettings> | null, includeCurrent?: boolean): HostDebugSettings;
     private clearHostListeners;
+    private setHostListeners;
     /** Instance of the MixDOMDebug, once has started debugging. */
-    static mixDOMDebug: MixDOMDebug | null;
+    static debug: MixDOMDebug | null;
     /** Stop debugging the current host, if has one. */
-    static stopDebug: () => void;
-    /** Start debugging the given host. */
-    static startDebug: (host: Host, settings?: Partial<HostDebugSettings> | null) => MixDOMDebug;
+    static stopDebug: (skipContext?: boolean) => void;
+    /** Start debugging the given host and initialize the app (unless already inited). */
+    static startDebug: (host?: Host | null, settings?: HostDebugSettingsInit | null, appState?: HostDebugAppStateUpdate | null) => MixDOMDebug;
+    /** Should only be called once. Adds the css, scripts and a couple of DOM elements to set up the app.
+     * @param cssUrl This is only used for the css file.
+     * @param onLoad Called after loading the two optional auxiliary scripts.
+     *      - "prettify" is used for syntax highlighting,
+     *      - "beautify" is used for line breaks and tabs fos JS.
+     *      - If the codes are not present, they are simply skipped. After loading, refresh the app to take use of them.
+     */
+    static initApp: (cssUrl?: string, onLoad?: () => void) => void;
 }
-
-/** Current app version. */
-declare const appVersion: "0.4.7";
-
-declare const appIcons: Record<IconNames, MixDOMDefTarget | null>;
-
-declare function getItemTypeFrom(treeNode: MixDOMTreeNode): DebugTreeItemType;
-declare function getPassPhaseAndSource(treeNode: MixDOMTreeNodePass): [phrase: string, sBoundary: SourceBoundary | null];
-declare function consoleLog(debugInfo: HostDebugSettings | null | undefined, ...args: any[]): void;
-declare const wrapTip: (...contents: MixDOMRenderOutput[]) => mix_dom.MixDOMDefTarget | null;
-declare function computeSnappedValue(snapStep: number, value: number): number;
-/** Helper to read array like properties from an object, optionally only certain kind of arrays. */
-type ArrLikePropsOf<T extends Record<string, any>, Arr extends any[] = any[]> = {
-    [Key in string & keyof T]: T[Key] extends Arr ? Key : never;
-}[string & keyof T];
-/** Helper to flatten a tree. */
-declare function flattenTree<Item extends Partial<Record<ChildProp, Item[]>>, ChildProp extends string & ArrLikePropsOf<Item, Item[]>>(rootItems: Item[], childProp: ChildProp): Item[];
-declare function flattenTree<Item extends Partial<Record<"children", Item[]>>>(rootItems: Item[], childProp?: "children"): Item[];
-/** Helper to flatten a tree. */
-declare function flattenTreeWith<Item extends Partial<Record<ChildProp, Item[]>>, FinalItem, ChildProp extends string & ArrLikePropsOf<Item, Item[]>, PItem extends FinalItem = FinalItem>(rootItems: Item[], itemHandler: (origItem: Item, parent: PItem | null, level: number) => FinalItem, childProp: ChildProp): PItem[];
-declare function flattenTreeWith<Item extends Partial<Record<"children", Item[]>>, FinalItem, PItem extends FinalItem = FinalItem>(rootItems: Item[], itemHandler: (origItem: Item, parent: PItem | null, level: number) => FinalItem, childProp?: "children"): PItem[];
 
 interface Rect {
     left: number;
@@ -177,8 +211,11 @@ declare const cleanMargin: (margin: Margin | null | undefined) => {
     bottom: number;
 };
 declare class FitBoxAlgoritms {
+    /** Fit to size main algorithm. */
     static fitToSize(targetRect: Rect, containerRect: Rect, fitLocks?: FitLocks, hAlgoritm?: FittingAlgoritm, vAlgoritm?: FittingAlgoritm): Rect;
+    /** Push based fitting algorithm. */
     static axisFitPush(tStart: number, tSize: number, cStart: number, cSize: number): [number, number];
+    /** Anchor-lock-based fitting algorithm. */
     static axisFitAnchored(tStart: number, tSize: number, cStart: number, cSize: number, allowStart?: boolean, allowEnd?: boolean): [number, number];
 }
 
@@ -304,7 +341,7 @@ interface UIListInfo<Item extends any = any, CommonProps extends Record<string, 
         commonProps?: CommonProps;
         filter?: (item: Item, iTotal: number, nIncluded: number) => boolean;
         refreshId?: any;
-        refVirtualList?: Ref<ComponentTypeWith<UIVirtualListInfo>>;
+        refVirtualList?: Ref<ComponentWith<UIVirtualListInfo>>;
     };
 }
 declare function UIList<Item extends any = any, CommonProps extends Record<string, any> = {}>(_initProps: ComponentProps<UIListInfo<Item, CommonProps>>, comp: ComponentWith<UIListInfo<Item, CommonProps>>): ComponentFuncReturn<UIListInfo>;
@@ -361,6 +398,8 @@ interface MixPositionedPopupInfo {
 }
 /** Provides popup feature with auto positioning. Renderer should include <comp.WithTooltip/>. */
 declare const MixPositionedPopup: ComponentFunc<MixPositionedPopupInfo>;
+
+declare const wrapTip: (...contents: MixDOMRenderOutput[]) => mix_dom.MixDOMDefTarget | null;
 
 interface UIAppIconProps extends Omit<MixDOMProps<"span">, "class"> {
     iconName: IconNames;
@@ -421,6 +460,200 @@ declare const UIAppInput: ComponentFunc<{
     props: UIAppInputProps;
 }>;
 
+declare function stringifyObject(object: any, multiLine?: boolean, nDepth?: number): string;
+declare const Prettify: (props: {
+    code: string;
+    tag?: "pre" | "code";
+    className?: string;
+    style?: string | CSSProperties;
+}) => mix_dom.MixDOMDefTarget | null;
+interface PrettifyDelayInfo {
+    state: {
+        isReady?: boolean;
+    };
+    props: {
+        origCode: string;
+        tag?: "pre" | "code";
+        className?: string;
+        style?: string | CSSProperties;
+        /** Defaults to 100ms. Only used from initial props, or when resetId or origCode indicates a reset. */
+        delay?: number;
+        prePrettifier?: (str: string) => string;
+        resetId?: any;
+    };
+    timers: "reset";
+}
+declare const PrettifyDelay: ComponentFunc<PrettifyDelayInfo>;
+/** Only escapes if prettify is present. */
+declare function escapeHTML(html: string): string;
+declare function beautify(text: string): string;
+declare function getSnippetContainerProps(): {
+    className: string;
+    style: string;
+};
+declare function getMiniScrollableProps(extraClassName?: string): {
+    className: string;
+    style?: string;
+};
+
+type OnItemLink = (id: DebugTreeItem["id"] | null, mode?: "focus" | "details" | "details-only" | "details-break" | "log") => void;
+declare function getGroundingTreeNode(treeNode: MixDOMTreeNode): MixDOMTreeNodeBoundary | MixDOMTreeNodePass | null;
+declare function readComponentOneLine(treeNode: MixDOMTreeNodeBoundary | MixDOMTreeNodePass, onPress?: ((e: MouseEvent | KeyboardEvent) => void) | null, skipContentStartStr?: boolean): MixDOMRenderOutput;
+declare function ComponentLink(props: {
+    name: string;
+    onPress?: (e: MouseEvent | KeyboardEvent) => void;
+    className?: string;
+}): any;
+declare function RenderComponentPartList(props: {
+    component: Component;
+    part: "props" | "state" | "contexts";
+}): any;
+declare function RenderPartList<Key extends string = string>(props: {
+    portion: Partial<Record<Key, any>>;
+    keys?: Key[];
+    overrideText?: string;
+}): any;
+declare function RenderPropertyName(props: {
+    italic?: boolean;
+    bold?: boolean;
+}): any;
+declare function RenderComponentWiredChildren(props: {
+    wired: Set<ComponentWiredType | ComponentWiredFunc>;
+    onItemLink?: OnItemLink;
+}): any;
+declare function RenderComponentRemoteChildren(props: {
+    remote: ComponentRemote;
+    remotePasses?: MixDOMTreeNodePass[];
+    onItemLink?: OnItemLink;
+}): any;
+declare function RenderComponentChildren(props: {
+    treeNode: MixDOMTreeNodeBoundary | MixDOMTreeNodePass;
+    onItemLink?: OnItemLink;
+}): any;
+declare const RenderedByComponents: ComponentFunc<{
+    props: {
+        treeNode: MixDOMTreeNode;
+        iUpdate?: number;
+        onItemLink?: OnItemLink;
+    };
+}>;
+
+declare const renderComponentLinkTip: () => mix_dom.MixDOMDefTarget | null;
+interface UIAppTipSectionInfo {
+    props: {
+        type: Exclude<TipSectionNames, "heading">;
+        title: MixDOMRenderOutput;
+        extraTitle?: MixDOMRenderOutput;
+        afterTitle?: MixDOMRenderOutput;
+        /** If gives extraTitle or afterTitle defaults to true. Otherwise false. */
+        useOverflow?: boolean;
+        /** If provided with onItemLink, then wraps extraTitle or title as a scroll-to-link. */
+        idToScroll?: DebugTreeItem["id"];
+        onItemLink?: OnItemLink;
+        /** Defaults to true. */
+        useDefaultLimits?: boolean;
+        /** Used for logging the debugTarget. */
+        debugInfo?: HostDebugSettings | null;
+        /** Info to log into console. */
+        debugTarget?: Record<string, any>;
+    };
+    state: {
+        hiddenSections: TipSectionNames[];
+    };
+    contexts: AppContexts;
+}
+declare const UIAppTipSection: ComponentFunc<UIAppTipSectionInfo>;
+interface UIAppTipHeadingInfo {
+    props: {
+        title: MixDOMRenderOutput;
+        extraTitle?: MixDOMRenderOutput;
+        afterTitle?: MixDOMRenderOutput;
+        afterLogTitle?: MixDOMRenderOutput;
+        afterLogTarget?: object | null;
+        /** If gives extraTitle or afterTitle defaults to true. Otherwise false. */
+        useOverflow?: boolean;
+        /** If provided with onItemLink, then wraps extraTitle or title as a scroll-to-link. */
+        idToScroll?: DebugTreeItem["id"];
+        onItemLink?: OnItemLink;
+        /** Needed for afterLogTarget. */
+        debugInfo?: HostDebugSettings;
+        /** Defaults to true. */
+        useDefaultLimits?: boolean;
+        history?: DebugTreeItem[];
+        iHistory?: number;
+        onHistory?: (iTo: number) => void;
+    };
+    contexts: AppContexts;
+}
+declare const UIAppTipHeading: ComponentFunc<UIAppTipHeadingInfo>;
+
+interface UIAppTipDisplayInfo {
+    props: {
+        item: DebugTreeItem;
+        debugInfo?: HostDebugSettings | null;
+        iUpdate?: number;
+        onItemLink?: OnItemLink;
+        reselectRefreshId?: any;
+        escToCloseTip?: boolean;
+        onHistoryItem?: (item: DebugTreeItem) => void;
+        onTipPresence?: (treeNode: DebugTreeItem["id"], type: "hoverable" | "popup", present: boolean) => void;
+        /** In "tip" mode clicking the row toggles the tip. In "select" clicking the row does selection. In "select-tip", clicking does selection, but hovering the row provides tip. */
+        rowMode?: "select" | "select-tip" | "tip";
+        includedSubHosts?: Host[];
+        includeAllHosts?: boolean;
+        toggleSubHost?: (host: Host, included?: boolean | null | "mode") => void;
+    };
+    state: {
+        isAlive: boolean;
+        history: DebugTreeItem[];
+        iHistory: number;
+    };
+    class: {
+        onHistory: (iTo: number) => void;
+    };
+    timers: "alive";
+}
+declare const UIAppTipDisplay: ComponentFunc<UIAppTipDisplayInfo>;
+
+interface UIAppShowTipInfo {
+    props: {
+        item: DebugTreeItem | null;
+        iUpdate?: number;
+        onItemLink?: OnItemLink;
+        getSourceElement?: (treeNode?: DebugTreeItem["id"]) => HTMLElement | null;
+        onTipPresence?: (treeNode: DebugTreeItem["id"], type: "hoverable" | "popup", present: boolean) => void;
+        includedSubHosts?: Host[];
+        includeAllHosts?: boolean;
+        toggleSubHost?: (host: Host, included?: boolean | null | "mode") => void;
+        debugInfo?: HostDebugSettings | null;
+        popupContainerProps?: Omit<UIPopupContainerProps, "container" | "sourceElement">;
+        reselectRefreshId?: any;
+        /** In "tip" mode clicking the row toggles the tip. In "select" clicking the row does selection. In "select-tip", clicking does selection, but hovering the row provides tip. */
+        rowMode?: "select" | "select-tip" | "tip";
+    };
+    state: {
+        item: DebugTreeItem | null;
+    };
+}
+declare const UIAppShowTip: mix_dom.ComponentFunc<UIAppShowTipInfo & MixPositionedPopupInfo>;
+
+interface UITreeNodeTypeInfo {
+    props: {
+        item: DebugTreeItem;
+        iUpdate?: number;
+        className?: string;
+        displayClassName?: string;
+        conceptClassName?: string;
+        onSelectItem?: (e: MouseEvent | KeyboardEvent) => void;
+        onSelectConcept?: (e: MouseEvent | KeyboardEvent) => void;
+        onTipPresence?: (treeNode: DebugTreeItem["id"], type: "hoverable" | "popup", present: boolean) => void;
+        onToggleTip?: (e: MouseEvent | KeyboardEvent) => void;
+        /** In "tip" mode clicking the row toggles the tip. In "select" clicking the row does selection. In "select-tip", clicking does selection, but hovering the row provides tip. */
+        rowMode?: "select" | "select-tip" | "tip";
+    };
+}
+declare const UITreeNodeType: ComponentFunc<UITreeNodeTypeInfo>;
+
 interface UIAppTreeItemInfo {
     props: {
         item: DebugTreeItem;
@@ -445,22 +678,16 @@ interface UIAppTreeItemInfo {
 }
 declare function UIAppTreeItem(_initProps: ComponentProps<UIAppTreeItemInfo>, comp: Component<UIAppTreeItemInfo>): ComponentFuncReturn<UIAppTreeItemInfo>;
 
-interface UITreeNodeTypeInfo {
+type SectionNames = "instructions" | "set-host" | "using-launcher" | "manual-launching" | "render-app";
+interface UIAppInstructionsInfo {
     props: {
-        item: DebugTreeItem;
-        iUpdate?: number;
-        className?: string;
-        displayClassName?: string;
-        conceptClassName?: string;
-        onSelectItem?: (e: MouseEvent | KeyboardEvent) => void;
-        onSelectConcept?: (e: MouseEvent | KeyboardEvent) => void;
-        onTipPresence?: (treeNode: DebugTreeItem["id"], type: "hoverable" | "popup", present: boolean) => void;
-        onToggleTip?: (e: MouseEvent | KeyboardEvent) => void;
-        /** In "tip" mode clicking the row toggles the tip. In "select" clicking the row does selection. In "select-tip", clicking does selection, but hovering the row provides tip. */
-        rowMode?: "select" | "select-tip" | "tip";
+        refreshId?: any;
+    };
+    state: {
+        hiddenSections: SectionNames[];
     };
 }
-declare const UITreeNodeType: ComponentFunc<UITreeNodeTypeInfo>;
+declare const UIAppInstructions: ComponentFunc<UIAppInstructionsInfo>;
 
 type Item$1 = UIAppTreeItemInfo["props"]["item"];
 interface UIAppHostTreeInfo {
@@ -472,8 +699,8 @@ interface UIAppHostTreeInfo {
     };
     state: {
         host: Host | null;
-        debugSettings: HostDebugSettings | null;
-        debugLive: HostDebugLive | null;
+        settings: HostDebugSettings | null;
+        iUpdate: number;
         selected: Item$1["id"][];
         collapsed: Item$1["id"][];
         tipItem: Item$1 | null;
@@ -486,6 +713,8 @@ interface UIAppHostTreeInfo {
         /** In "tip" mode clicking the row toggles the tip. In "select" clicking the row does selection. In "select-tip", clicking does selection, but hovering the row provides tip. */
         rowMode: "select" | "select-tip" | "tip";
         hideUnmatched: boolean;
+        includeAllSubHosts: boolean;
+        includedSubHosts: Host[];
         reselectRefreshId: {};
     };
     class: {
@@ -501,7 +730,7 @@ interface UIAppTopBarInfo {
     props: {
         refreshId?: any;
     };
-    state: Omit<SettingsContextData, "hiddenTipSections">;
+    state: Omit<StateContextData, "hiddenTipSections">;
     contexts: AppContexts;
 }
 declare const UIAppTopBar: ComponentCtxFunc<UIAppTopBarInfo>;
@@ -512,9 +741,10 @@ interface UIAppInfo {
     };
     state: {
         theme: "dark" | "light";
+        host: Host$1 | null;
     };
     contexts: AppContexts;
 }
 declare const UIApp: ComponentCtxFunc$1<UIAppInfo>;
 
-export { Align, AppContexts, ArrLikePropsOf, DebugContext, DebugContextData, DebugContextSignals, DebugTreeItem, DebugTreeItemType, FitBoxAlgoritms, FitLocks, FittingAlgoritm, HAlign, HostDebugLive, HostDebugSettings, IconNames, Margin, MarginSides, MixDOMDebug, MixDOMDebugType, MixHoverSignal, MixHoverSignalInfo, MixOnEscape, MixOnEscapeInfo, MixPositionedPopup, MixPositionedPopupInfo, Offset, Rect, SettingsContext, SettingsContextData, SettingsContextSignals, Size, TipSectionNames, TreeListItem, UIApp, UIAppButton, UIAppButtonProps, UIAppHostTree, UIAppHostTreeInfo, UIAppIcon, UIAppIconProps, UIAppInfo, UIAppInput, UIAppInputProps, UIAppTip, UIAppTipInfo, UIAppTipRemote, UIAppTopBar, UIAppTopBarInfo, UIAppTreeItem, UIAppTreeItemInfo, UIFitBox, UIFitBoxInfo, UIFitBoxProps, UIList, UIListInfo, UIPopupContainer, UIPopupContainerProps, UIPopupContents, UIPopupContentsAlignProps, UIPopupContentsProps, UITreeNodeType, UITreeNodeTypeInfo, UIVirtualList, UIVirtualListInfo, UIVirtualRow, UIVirtualRowProps, VAlign, allTipSectionNames, appIcons, appVersion, cleanMargin, computeSnappedValue, consoleLog, flattenTree, flattenTreeWith, getItemTypeFrom, getPassPhaseAndSource, wrapTip };
+export { Align, AppContexts, ArrLikePropsOf, ComponentLink, DebugContext, DebugContextData, DebugContextSignals, DebugTreeItem, DebugTreeItemType, FitBoxAlgoritms, FitLocks, FittingAlgoritm, HAlign, IconNames, Margin, MarginSides, MixDOMDebug, MixDOMDebugType, MixHoverSignal, MixHoverSignalInfo, MixOnEscape, MixOnEscapeInfo, MixPositionedPopup, MixPositionedPopupInfo, Offset, OnItemLink, Prettify, PrettifyDelay, PrettifyDelayInfo, Rect, RenderComponentChildren, RenderComponentPartList, RenderComponentRemoteChildren, RenderComponentWiredChildren, RenderPartList, RenderPropertyName, RenderedByComponents, SectionNames, Size, StateContext, StateContextData, StateContextSignals, TreeListItem, UIApp, UIAppButton, UIAppButtonProps, UIAppHostTree, UIAppHostTreeInfo, UIAppIcon, UIAppIconProps, UIAppInfo, UIAppInput, UIAppInputProps, UIAppInstructions, UIAppInstructionsInfo, UIAppShowTip, UIAppShowTipInfo, UIAppTip, UIAppTipDisplay, UIAppTipDisplayInfo, UIAppTipHeading, UIAppTipHeadingInfo, UIAppTipInfo, UIAppTipRemote, UIAppTipSection, UIAppTipSectionInfo, UIAppTopBar, UIAppTopBarInfo, UIAppTreeItem, UIAppTreeItemInfo, UIFitBox, UIFitBoxInfo, UIFitBoxProps, UIList, UIListInfo, UIPopupContainer, UIPopupContainerProps, UIPopupContents, UIPopupContentsAlignProps, UIPopupContentsProps, UITreeNodeType, UITreeNodeTypeInfo, UIVirtualList, UIVirtualListInfo, UIVirtualRow, UIVirtualRowProps, VAlign, appIcons, appVersion, beautify, cleanMargin, consoleLog, consoleLogItem, consoleWarn, escapeHTML, flattenTree, flattenTreeWith, getGroundingTreeNode, getItemTypeFrom, getMiniScrollableProps, getPassPhaseAndSource, getSnippetContainerProps, readComponentOneLine, renderComponentLinkTip, stringifyObject, wrapTip };

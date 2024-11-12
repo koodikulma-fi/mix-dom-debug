@@ -3,7 +3,7 @@
 
 // Libraries.
 import { classNames } from "dom-types";
-import { MixDOM, ComponentWith, ComponentTypeEither, ComponentProps, ComponentFuncReturn, MixDOMRenderOutput, Component, Ref, ComponentTypeWith } from "mix-dom";
+import { MixDOM, ComponentWith, ComponentTypeEither, ComponentProps, ComponentFuncReturn, MixDOMRenderOutput, Ref } from "mix-dom";
 import { createMemo } from "data-memo";
 // Local.
 import { UIVirtualList, UIVirtualListInfo } from "./UIVirtualList";
@@ -23,7 +23,7 @@ export interface UIListInfo<Item extends any = any, CommonProps extends Record<s
         commonProps?: CommonProps;
         filter?: (item: Item, iTotal: number, nIncluded: number) => boolean;
         refreshId?: any;
-		refVirtualList?: Ref<ComponentTypeWith<UIVirtualListInfo>>;
+		refVirtualList?: Ref<ComponentWith<UIVirtualListInfo>>;
     };
 }
 export function UIList<Item extends any = any, CommonProps extends Record<string, any> = {}>(_initProps: ComponentProps<UIListInfo<Item, CommonProps>>, comp: ComponentWith<UIListInfo<Item, CommonProps>>): ComponentFuncReturn<UIListInfo> {

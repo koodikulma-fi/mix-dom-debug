@@ -1,3 +1,0 @@
-RewriteEngine on 
-RewriteCond %{REQUEST_URI} !\.(?:html|css|js)$ [NC]
-RewriteRule ^ - [L,F] 

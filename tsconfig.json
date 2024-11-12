@@ -13,6 +13,6 @@
     "jsxFactory": "MixDOM.def",
 	 	"jsxFragmentFactory": "MixDOM.Fragment"
   },
-  "include": ["./src/index.ts", "./src/index.cjs.ts", "./src/index.global.ts", "./src/**/*.tsx"],
+  "include": ["./src/index.ts", "src/index_cjs.ts", "./src/index_global.ts", "./src/index_launcher.ts", "src/index_launcher_cjs.ts", "./src/index_launcher_global.ts", "./src/**/*.tsx"],
   "exclude": ["node_modules"]
 }

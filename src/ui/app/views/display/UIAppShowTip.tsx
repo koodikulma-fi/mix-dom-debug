@@ -2,17 +2,18 @@
 // - Imports - //
 
 // Libraries.
-import { MixDOM, mixFuncsWith } from "mix-dom";
+import { Host, MixDOM, mixFuncsWith } from "mix-dom";
 // Common types.
-import type { DebugTreeItem, HostDebugSettings } from "../../../../common/index";
+import { HostDebugSettings } from "../../../../shared";
+import type { DebugTreeItem } from "../../../../common/index";
 // Common in UI.
 import { UIPopupContainerProps } from "../../../library/index";
+import { MixPositionedPopup } from "../../../mixables/MixPositionedPopup";
 // UI app based.
 import { UIAppTipRemote } from "../../common/index";
 // Local.
 import { OnItemLink } from "./appTipHelpers";
 import { UIAppTipDisplay } from "./UIAppTipDisplay";
-import { MixPositionedPopup } from "../../../mixables/MixPositionedPopup";
 
 
 // - Component - //
@@ -24,6 +25,9 @@ export interface UIAppShowTipInfo {
         onItemLink?: OnItemLink;
         getSourceElement?: (treeNode?: DebugTreeItem["id"]) => HTMLElement | null;
         onTipPresence?: (treeNode: DebugTreeItem["id"], type: "hoverable" | "popup", present: boolean) => void;
+        includedSubHosts?: Host[];
+        includeAllHosts?: boolean;
+        toggleSubHost?: (host: Host, included?: boolean | null | "mode") => void;
         debugInfo?: HostDebugSettings | null;
         popupContainerProps?: Omit<UIPopupContainerProps, "container" | "sourceElement">;
         reselectRefreshId?: any;
@@ -61,6 +65,9 @@ export const UIAppShowTip = mixFuncsWith(MixPositionedPopup, (_props, comp) => {
             onTipPresence={comp.props.onTipPresence}
             escToCloseTip={true}
             rowMode={comp.props.rowMode}
+            includedSubHosts={comp.props.includedSubHosts}
+            includeAllHosts={comp.props.includeAllHosts}
+            toggleSubHost={comp.props.toggleSubHost}
         /> : null;
     
     comp.listenTo("preUpdate", (prevProps, prevState, willUpdate) => {
@@ -74,6 +81,9 @@ export const UIAppShowTip = mixFuncsWith(MixPositionedPopup, (_props, comp) => {
             prevProps.reselectRefreshId !== props.reselectRefreshId ||
             prevProps.onTipPresence !== props.onTipPresence ||
             prevProps.rowMode !== props.rowMode ||
+            prevProps.includedSubHosts !== props.includedSubHosts ||
+            prevProps.includeAllHosts !== props.includeAllHosts ||
+            prevProps.toggleSubHost !== props.toggleSubHost ||
             prevState && prevState.popupSourceElement !== comp.state.popupSourceElement
         ))
             comp.refreshPopupId = {};

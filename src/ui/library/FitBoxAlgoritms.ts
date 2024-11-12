@@ -59,7 +59,7 @@ export const cleanMargin = (margin: Margin | null | undefined) => {
 
 export class FitBoxAlgoritms {
 
-    // Static fitting main method.
+    /** Fit to size main algorithm. */
     static fitToSize(targetRect: Rect, containerRect: Rect, fitLocks: FitLocks = FitLocks.None, hAlgoritm: FittingAlgoritm = "push", vAlgoritm : FittingAlgoritm = "push"): Rect {
 
         // Prepare outcome.
@@ -97,7 +97,7 @@ export class FitBoxAlgoritms {
         return newRect;
     }
 
-    // Static push-based fitting algoritm for one axis.
+    /** Push based fitting algorithm. */
     static axisFitPush(tStart: number, tSize: number, cStart: number, cSize: number): [number, number] {
         // Squeeze to fit the container size.
         if (tSize > cSize)
@@ -114,7 +114,7 @@ export class FitBoxAlgoritms {
         return [tStart, tSize];
     }
 
-    // Static anchor-lock-based fitting algoritm for one axis.
+    /** Anchor-lock-based fitting algorithm. */
     static axisFitAnchored(tStart: number, tSize: number, cStart: number, cSize: number, allowStart = true, allowEnd = true): [number, number] {
         // Prepare.
         const cEnd = cStart + cSize;

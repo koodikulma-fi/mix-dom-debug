@@ -3,11 +3,12 @@
 
 // Libraries.
 import { classNames } from "dom-types";
-import { MixDOM, Component, ComponentProps, ComponentFuncReturn, MixDOMPreProps, MixDOMTreeNode } from "mix-dom";
+import { MixDOM, Component, ComponentProps, ComponentFuncReturn } from "mix-dom";
 // Common.
-import { HostDebugSettings, DebugTreeItem, consoleLog, wrapTip, DebugTreeItemType, getItemTypeFrom } from "../../../../common/index";
+import { HostDebugSettings } from "../../../../shared";
+import { DebugTreeItem, consoleLog, DebugTreeItemType, getItemTypeFrom } from "../../../../common/index";
 // App UI common.
-import { UIAppButton } from "../../common/index";
+import { UIAppButton, wrapTip } from "../../common/index";
 // Local.
 import { UITreeNodeType } from "./UITreeNodeType";
 

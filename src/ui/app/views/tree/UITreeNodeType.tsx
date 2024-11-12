@@ -5,12 +5,11 @@
 import { classNames } from "dom-types";
 import { MixDOM, MixDOMRenderOutput, ComponentFunc } from "mix-dom";
 // Common.
-import { DebugTreeItem, getItemTypeFrom, wrapTip } from "../../../../common/index";
+import { DebugTreeItem, getItemTypeFrom } from "../../../../common/index";
 // App UI common.
-import { UIAppButton } from "../../common/index";
+import { UIAppButton, wrapTip } from "../../common/index";
 // Local.
-import { escapeHTML, Prettify } from "./beautifyHelpers";
-import { readComponentOneLine } from "./appTipHelpers";
+import { escapeHTML, Prettify, readComponentOneLine } from "../display/index";
 
 
 // - Sub component - //

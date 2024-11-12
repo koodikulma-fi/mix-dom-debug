@@ -1,9 +1,11 @@
 
 // - Imports - //
 
+// Libraries.
 import { ComponentFunc, MixDOM } from "mix-dom";
-import { UIAppTip, UIAppTipInfo } from "./UIAppTip";
 import { classNames } from "dom-types";
+// Local.
+import { UIAppTip, UIAppTipInfo } from "./UIAppTip";
 
 
 // - Mixed component - //

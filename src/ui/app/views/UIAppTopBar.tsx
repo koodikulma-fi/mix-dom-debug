@@ -5,20 +5,18 @@
 import { MixDOM, ComponentCtxFunc } from "mix-dom";
 import { classNames } from "dom-types";
 // Common.
-import { AppContexts, SettingsContextData, consoleLog, wrapTip, appVersion } from "../../../common/index";
-// Components.
-import { UIAppButton } from "../common/UIAppButton";
-import { UIAppInput } from "../common/UIAppInput";
+import { AppContexts, StateContextData, consoleLog, appVersion } from "../../../common/index";
+// Common in UI.
+import { wrapTip, UIAppButton, UIAppInput } from "../common/index";
 
 
 // - Component - //
 
 export interface UIAppTopBarInfo {
     props: { refreshId?: any; };
-    state: Omit<SettingsContextData, "hiddenTipSections">;
+    state: Omit<StateContextData, "hiddenTipSections">;
     contexts: AppContexts;
 }
-type Test = boolean | never extends never ? true : false;
 export const UIAppTopBar: ComponentCtxFunc<UIAppTopBarInfo> = function DebugHost(_initProps, comp, cApi) {
 
     // Context to state.
@@ -36,26 +34,26 @@ export const UIAppTopBar: ComponentCtxFunc<UIAppTopBarInfo> = function DebugHost
         noneCollapsed: true,
     };
 
-    cApi.listenToData("settings", (settings) => {
-        const { hiddenTipSections, ...s } = settings! || comp.state;
+    cApi.listenToData("state", (state) => {
+        const { hiddenTipSections, ...s } = state! || comp.state;
         comp.setState({ ...s });
     });
 
     // Togglers.
     const setFilter = (filter: string) => {
-        cApi.setInData("settings.filter", filter);
+        cApi.setInData("state.filter", filter);
     }
-    const toggleFilterAuto = () => cApi.setInData("settings.showCollapsed", !comp.state.showCollapsed);
-    const toggleFilterParents = () => cApi.setInData("settings.showParents", !comp.state.showParents);
-    const toggleFilterChildren = () => cApi.setInData("settings.showChildren", !comp.state.showChildren);
-    const toggleHideUnmatched = () => cApi.setInData("settings.hideUnmatched", !comp.state.hideUnmatched);
-    const toggleIgnoreFilter = () => cApi.setInData("settings.ignoreFilter", !comp.state.ignoreFilter);
-    const toggleIgnoreSelection = () => cApi.setInData("settings.ignoreSelection", !comp.state.ignoreSelection);
-    const toggleRowMode = (e: MouseEvent | KeyboardEvent) => cApi.setInData("settings.rowMode", comp.state.rowMode === "tip" ? "select-tip" : comp.state.rowMode === "select-tip" ? "select" : "tip");
-    const toggleCollapseAll = () => cApi.sendSignal("settings.toggleCollapseAll");
-    const toggleSelectMatched = (e: MouseEvent | KeyboardEvent) => cApi.sendSignal("settings.toggleSelectMatched", e.shiftKey);
-    const toggleTheme = () => cApi.sendSignal("settings.toggleTheme");
-    const scrollToMatched = (e: MouseEvent | KeyboardEvent) => cApi.sendSignal("settings.scrollToMatched", e.ctrlKey || e.altKey || e.metaKey, e.shiftKey);
+    const toggleFilterAuto = () => cApi.setInData("state.showCollapsed", !comp.state.showCollapsed);
+    const toggleFilterParents = () => cApi.setInData("state.showParents", !comp.state.showParents);
+    const toggleFilterChildren = () => cApi.setInData("state.showChildren", !comp.state.showChildren);
+    const toggleHideUnmatched = () => cApi.setInData("state.hideUnmatched", !comp.state.hideUnmatched);
+    const toggleIgnoreFilter = () => cApi.setInData("state.ignoreFilter", !comp.state.ignoreFilter);
+    const toggleIgnoreSelection = () => cApi.setInData("state.ignoreSelection", !comp.state.ignoreSelection);
+    const toggleRowMode = (e: MouseEvent | KeyboardEvent) => cApi.setInData("state.rowMode", comp.state.rowMode === "tip" ? "select-tip" : comp.state.rowMode === "select-tip" ? "select" : "tip");
+    const toggleCollapseAll = () => cApi.sendSignal("state.toggleCollapseAll");
+    const toggleSelectMatched = (e: MouseEvent | KeyboardEvent) => cApi.sendSignal("state.toggleSelectMatched", e.shiftKey);
+    const toggleTheme = () => cApi.sendSignal("state.toggleTheme");
+    const scrollToMatched = (e: MouseEvent | KeyboardEvent) => cApi.sendSignal("state.scrollToMatched", e.ctrlKey || e.altKey || e.metaKey, e.shiftKey);
     const logHost = () => consoleLog(cApi.getInData("debug.settings"), "MixDOMDebug: Log host", cApi.getInData("debug.host"));
     
     // Tips.

@@ -5,19 +5,30 @@
 import { classNames } from "dom-types";
 import { MixDOM, MixDOMRenderOutput, ComponentFunc } from "mix-dom";
 // Common.
-import { DebugTreeItem, wrapTip, AppContexts, TipSectionNames, allTipSectionNames, HostDebugSettings, consoleLog } from "../../../../common/index";
+import { HostDebugSettings, TipSectionNames } from "../../../../shared";
+import { DebugTreeItem, AppContexts, consoleLog } from "../../../../common/index";
 // App UI common.
-import { UIAppButton } from "../../common/index";
+import { UIAppButton, wrapTip } from "../../common/index";
 // Local.
 import { getMiniScrollableProps } from "./beautifyHelpers";
 import { OnItemLink } from "./appTipHelpers";
 
 
-// - Tips - //
+// - Dev. note - //
+//
+// - This could be refactored now:
+//      * To not use a context on every tip section.
+//      * But instead one context connections on the UIAppTipDisplay instead.
 
+
+// - Helpers - //
+
+// Tips.
 export const renderComponentLinkTip = () => wrapTip(<div>Scroll and focus to the target.<br /> - If is matching and item is out of view, also selects it.<br/> - Click with <b>Ctrl</b>/<b>Alt</b> to open details popup instead.<br /> - Click with <b>Shift</b> to log into console instead.</div>);
 const renderUIAppTipSectionTip = () => wrapTip(<div>Toggle the section visibility.<br/> - Click with <b>Ctrl</b>/<b>Alt</b> to only show this section or all.</div>);
 const renderConsoleTip = () => wrapTip(<div>Click to log in console.</div>);
+// Constants.
+const allTipSectionNames = ["heading", "code", "props", "state", "contexts", "settings", "rendered-by", "wired", "remote", "children", "renders"] as const;
 
 
 // - Component - //
@@ -48,7 +59,7 @@ export interface UIAppTipSectionInfo {
 export const UIAppTipSection: ComponentFunc<UIAppTipSectionInfo> = (_props, comp, cApi) => {
     // Context to state.
     comp.state = { hiddenSections: [] };
-    cApi.listenToData("settings.hiddenTipSections", (hiddenSections) => {
+    cApi.listenToData("state.hiddenTipSections", (hiddenSections) => {
         comp.setState({ hiddenSections })
     }, [comp.state.hiddenSections]);
     // Callbacks.
@@ -65,7 +76,7 @@ export const UIAppTipSection: ComponentFunc<UIAppTipSectionInfo> = (_props, comp
             i !== -1 ? hiddenSections.splice(i, 1) : hiddenSections.push(type);
         }
         // Set.
-        cApi.setInData("settings.hiddenTipSections", hiddenSections);
+        cApi.setInData("state.hiddenTipSections", hiddenSections);
     };
     const onPressLink = (e: MouseEvent | KeyboardEvent) => {
         comp.props.onItemLink && comp.props.idToScroll !== undefined && comp.props.onItemLink(comp.props.idToScroll, e.shiftKey ? "log" : e.ctrlKey || e.altKey || e.metaKey ? "details" : "focus");

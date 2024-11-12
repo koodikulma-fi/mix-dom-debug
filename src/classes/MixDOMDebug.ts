@@ -3,12 +3,11 @@
 
 // Library.
 import { Context } from "data-signals";
-import { Host, newDef } from "mix-dom";
+import { Host, MixDOMTreeNode, newDef } from "mix-dom";
 import { ClassType } from "mixin-types";
 // Common.
-import { consoleLog } from "../common/helpers";
-import { appVersion } from "../common/appVersion";
-import { HostDebugSettings, HostDebugLive, DebugContextSignals, DebugContextData, AppContexts, SettingsContextData, SettingsContextSignals} from "../common/typing";
+import { HostDebugAppState, HostDebugAppStateUpdate, HostDebugSettings, HostDebugSettingsInit } from "../shared";
+import { consoleLog, appVersion, DebugContextSignals, DebugContextData, AppContexts, StateContextData, StateContextSignals, consoleWarn} from "../common/index";
 // UI.
 import { UIApp } from "../ui/app/UIApp";
 
@@ -17,11 +16,11 @@ import { UIApp } from "../ui/app/UIApp";
 
 export interface MixDOMDebugType extends ClassType<MixDOMDebug, [container?: Element | null]> {
     /** Instance of the MixDOMDebug, once has started debugging. */
-    mixDOMDebug: MixDOMDebug | null;
+    debug: MixDOMDebug | null;
     /** Stop debugging the current host, if has one. */
     stopDebug: () => void;
     /** Start debugging the given host. */
-    startDebug: (host: Host, settings?: Partial<HostDebugSettings>) => MixDOMDebug;
+    startDebug: (host: Host, settings?: Partial<HostDebugSettings>, state?: Partial<HostDebugAppState>) => MixDOMDebug;
 }
 
 export class MixDOMDebug {
@@ -46,11 +45,11 @@ export class MixDOMDebug {
         this.refreshId = {};
         this.contexts = {
             debug: new Context<DebugContextData, DebugContextSignals>({
-                ...this.getSettingsAndLive(),
+                settings: this.getSettings(null, false),
                 host: null,
-                focusedId: null,
+                iUpdate: 0,
             }),
-            settings: new Context<SettingsContextData, SettingsContextSignals>({
+            state: new Context<StateContextData, StateContextSignals>({
                 theme: "dark",
                 filter: "",
                 showCollapsed: false,
@@ -63,55 +62,60 @@ export class MixDOMDebug {
                 shouldSelect: true,
                 noneCollapsed: true,
                 hiddenTipSections: []
-            })
+            }),
         };
-        this.contexts.settings.listenTo("toggleTheme", () =>
-            this.contexts.settings.setData({ theme: this.contexts.settings.data.theme === "dark" ? "light" : "dark" })
-        );
+        // Hook up.
+        this.contexts.state.listenTo("toggleTheme", () => this.contexts.state.setData({
+            theme: this.contexts.state.data.theme === "dark" ? "light" : "dark"
+        }));
+        this.contexts.state.listenTo("connectSubHost", (host, refresh) => {
+            // Don't allow modifying root, nor own host.
+            if (host === this.contexts.debug.data.host || host === this.ownHost)
+                return;
+            // Set and refresh.
+            this.setHostListeners(host);
+            refresh && this.refresh();
+        });
+        this.contexts.state.listenTo("disconnectSubHost", (host, refresh) => { 
+            // Don't allow modifying root, nor own host.
+            if (host === this.contexts.debug.data.host || host === this.ownHost)
+                return;
+            // Clear and refresh.
+            this.clearHostListeners(host);
+            refresh && this.refresh();
+        });
+        // Own host.
         this.ownHost = new Host(
             newDef(UIApp, { refreshId: this.refreshId }),
             container || null,
             { onlyRunInContainer: true },
             this.contexts
         );
-
-        this.initialize();
     }
 
 
     // - Use API - //
 
-    public setHost(host: Host, debugSettings?: Partial<HostDebugSettings> | null): void {
-        // Prepare setup.
-        const { settings, live } = this.getSettingsAndLive(debugSettings);
+    public setHost(host: Host, debugSettings?: Partial<HostDebugSettings> | null, appState?: HostDebugAppStateUpdate | null): void {
+        // Own host - never allow. Just skip the process entirely.
+        if (host === this.ownHost) {
+            const settings = debugSettings ? { ...this.contexts.debug.data.settings, ...debugSettings } : this.contexts.debug.data.settings;
+            consoleWarn(settings, "MixDOMDebug: Tried to debug self.", host);
+            return;
+        }
         // Remove existing.
         const already = this.contexts.debug.data.host;
-        // Same.
-        if (already && already === host) {
-            // already.settings.focusSource && already.live.focusInListener && already.settings.focusSource.removeEventListener("focusin", already.live.focusInListener);
-        }
-        // New.
-        else {
+        // Changed.
+        if (!already || already !== host) {
             // Clear.
             if (already)
                 this.clearHostListeners(already);
             // Hook up.
-            host.services.renderCycle.listenTo("onFinish", this.onUpdate, [host]);
+            this.setHostListeners(host);
         }
         // Set context data.
-        // .. In Chrome, we need to delay this. If happens to be fully synchronous (the theory is), there seems to be some sort of micro-timing bug.
-        // .. In the bug, there's some infinite loop somewhere. Very likely, it's context data -> host -> context data.
-        window.setTimeout(() => this.contexts.debug.setData({ host: host, settings, live }), 0);
-        // this.contexts.debug.setData({ host: host, settings, live });
-
-        //
-        // <-- SHOULD BE REFINED HERE IF THISIS THE FINAL SOLUTION..
-
-        // <-- HEY... IT SEEMS TO BE COMPONENT SET STATE CONTEXT DATA -> INFINTE LOOP..!!!!
-
-
-        // Log.
-        consoleLog(settings, "MixDOMDebug: " + (already ? " Host re-added" : " Host added"), host);
+        this.contexts.debug.setData({ host, iUpdate: 0 });
+        this.updateSettings(debugSettings, appState);
     }
 
     public clearHost(): void {
@@ -123,37 +127,43 @@ export class MixDOMDebug {
         // Clear listeners.
         this.clearHostListeners(host);
         // Set context data.
-        this.contexts.debug.setData({ host: null, focusedId: null, ...this.getSettingsAndLive() });
+        this.contexts.debug.setData({ host: null, iUpdate: 0 });
+    }
+
+    public updateSettings(debugSettings?: Partial<HostDebugSettings> | null, appState?: HostDebugAppStateUpdate | null): void {
+        // Update debug settings.
+        if (debugSettings)
+            this.contexts.debug.setInData("settings", this.getSettings(debugSettings));
+        // Update app state.
+        if (appState) {
+            // Parse.
+            const { selected, collapsed, includedSubHosts, ...appCoreState } = appState;
+            // Set data.
+            this.contexts.state.setData({ ...appCoreState });
+            // Handle special signals.
+            if (selected)
+                this.contexts.state.sendSignalAs("delay", "modifySelected", selected as MixDOMTreeNode[], "reset");
+            if (collapsed)
+                this.contexts.state.sendSignalAs("delay", "modifyCollapsed", collapsed as MixDOMTreeNode[], "reset");
+            if (includedSubHosts !== undefined)
+                this.contexts.state.sendSignalAs("delay", "modifySubHosts", includedSubHosts as Host[] | boolean);
+        }
     }
 
 
     // - Refresh - //
 
-    public refresh(forceRefresh?: boolean): void {
+    public refresh(forceRefresh: boolean = true): void {
         // Set a new refresh id.
         if (forceRefresh)
             this.refreshId = {};
         // Update.
-        this.contexts.debug.data.host?.updateRoot(newDef(UIApp, { refreshId: this.refreshId }));
+        this.ownHost.updateRoot(newDef(UIApp, { refreshId: this.refreshId }));
     }
-
-    // public refreshFocusFor(host: Host, doc: Document): void {
-    //     // Get valid focus element.
-    //     const elFocus = document.activeElement && document.activeElement !== document.body && document.body.contains(document.activeElement) ? document.activeElement : null;
-    //     // Get tree node.
-    //     let treeNode: MixDOMTreeNode | null = null;
-    //     if (elFocus)
-    //         treeNode = host.findTreeNodes(["dom"], 1, false, (tNode) => tNode.domNode === elFocus)[0] || null;
-    //     // Send out.
-    //     this.contexts.debug.sendSignal("domFocus", treeNode);
-    //     // Update.
-    //     this.refresh(true);
-    // }
 
 
     // - Handlers - //
 
-    // public updateHost(host: Host, cancelled?: boolean): void {
     public onUpdate = (cancelled?: boolean, host?: Host): void => {
         // Nothing.
         if (cancelled)
@@ -163,41 +173,29 @@ export class MixDOMDebug {
             return;
         // Set up a timer.
         this.updateTimer = window.setTimeout(() => {
-            // Mark as cleared.
+            // If the debugger app was removed.
             this.updateTimer = null;
-            if (!this.ownHost.getContainerElement()) {
-                host && this.clearHostListeners(host);
-                return;
-            }
+            // if (!this.ownHost.getContainerElement()) {
+            //     host && this.clearHostListeners(host);
+            //     return;
+            // }
             // Increase counter.
-            const live = this.contexts.debug.data.live;
-            const iUpdate = live ? live.iUpdate + 1 : 1;
-            this.contexts.debug.setInData("live.iUpdate", iUpdate);
-            // // Refresh.
-            // this.refresh(true);
+            this.contexts.debug.setInData("iUpdate", (this.contexts.debug.data.iUpdate || 0) + 1);
         }, 1);
     };
 
 
-
     // - Helpers - //
 
-    public getSettingsAndLive(settings?: Partial<HostDebugSettings> | null, iUpdate: number = 0): { settings: HostDebugSettings; live: HostDebugLive; } {
-        const basis: HostDebugSettings = {
-            console: window.console,
-            // focusSource: null
-        };
-        const live: HostDebugLive = {
-            iUpdate
-        };
+    public getSettings(settings?: Partial<HostDebugSettings> | null, includeCurrent: boolean = true): HostDebugSettings {
         return {
-            settings: settings ? { ...basis, ...settings } : basis,
-            live
+            // Default.
+            console: window.console,
+            // Current.
+            ...includeCurrent ? this.contexts.debug.data.settings : undefined,
+            // Override.
+            ...settings
         };
-    }
-
-    public initialize(): void {
-
     }
 
 
@@ -205,79 +203,122 @@ export class MixDOMDebug {
     
     private clearHostListeners(host: Host): void {
         // Clear listeners.
-        // settings.focusSource && live.focusInListener && settings.focusSource.removeEventListener("focusin", live.focusInListener);
         host.services.renderCycle.unlistenTo("onFinish", this.onUpdate);
-        // Refresh.
+        // Log.
         consoleLog(this.contexts.debug.data.settings, "MixDOMDebug: Host removed", host);
+    }
+
+    private setHostListeners(host: Host): void {
+        host.services.renderCycle.listenTo("onFinish", this.onUpdate, [host]);
+        // Log.
+        consoleLog(this.contexts.debug.data.settings, "MixDOMDebug: Host added", host);
     }
 
 
     // - Static - //
 
     /** Instance of the MixDOMDebug, once has started debugging. */
-    public static mixDOMDebug: MixDOMDebug | null = null;
+    public static debug: MixDOMDebug | null = null;
+
     /** Stop debugging the current host, if has one. */
-    public static stopDebug = () => {
-        if (MixDOMDebug.mixDOMDebug) {
-            const host = MixDOMDebug.mixDOMDebug.contexts.debug.data.host;
-            host && MixDOMDebug.mixDOMDebug.clearHostListeners(host);
-            // MixDOMDebug.mixDOMDebug.clearHost();
-            MixDOMDebug.mixDOMDebug = null;
+    public static stopDebug = (skipContext?: boolean) => {
+        if (MixDOMDebug.debug) {
+            const contexts = MixDOMDebug.debug.contexts;
+            const host = contexts.debug.data.host;
+            host && MixDOMDebug.debug.clearHostListeners(host);
+            !skipContext && contexts.debug.setData({ host: null }); // <-- clean up..!
+            MixDOMDebug.debug = null;
         }
     }
-    /** Start debugging the given host. */
-    public static startDebug = (host: Host, settings?: Partial<HostDebugSettings> | null): MixDOMDebug => {
 
+    /** Start debugging the given host and initialize the app (unless already inited). */
+    public static startDebug = (host?: Host | null, settings?: HostDebugSettingsInit | null, appState?: HostDebugAppStateUpdate | null): MixDOMDebug => {
+
+        // Parse.
+        const { rootElement, cssUrl, ...coreSettings } = settings || {};
+
+        // Already inited.
+        if (MixDOMDebug.debug) {
+            host ? MixDOMDebug.debug.setHost(host, coreSettings, appState) : MixDOMDebug.debug.updateSettings(coreSettings, appState);
+            return MixDOMDebug.debug;
+        }
+
+        // Initialize.
+        MixDOMDebug.initApp(cssUrl, () => {
+            // After has loaded all optional helper scripts, send a refresh.
+            MixDOMDebug.debug && MixDOMDebug.debug.refresh();
+        });
+
+        // Start up debugging.
+        const elRoot = rootElement && rootElement instanceof Element ? rootElement : document.body.querySelector(rootElement || "#app-root");
+
+        // Create the app.
+        MixDOMDebug.debug = new MixDOMDebug(elRoot);
+        host ? MixDOMDebug.debug.setHost(host, coreSettings, appState) : MixDOMDebug.debug.updateSettings(coreSettings, appState);
+
+        // Return the instance.
+        return MixDOMDebug.debug;
+    }
+    
+    /** Should only be called once. Adds the css, scripts and a couple of DOM elements to set up the app.
+     * @param cssUrl This is only used for the css file.
+     * @param onLoad Called after loading the two optional auxiliary scripts.
+     *      - "prettify" is used for syntax highlighting,
+     *      - "beautify" is used for line breaks and tabs fos JS.
+     *      - If the codes are not present, they are simply skipped. After loading, refresh the app to take use of them.
+     */
+    public static initApp = (cssUrl?: string, onLoad?: () => void) => {
+
+        // Parse url.
+        if (!cssUrl)
+            cssUrl = "https://unpkg.com/mix-dom-debug/MixDOMDebug.css";
+
+        // Shortcuts.
         const w = window;
+        const doc = w.document;
         const cssVersion = appVersion;
 
-        // FOR NOW..
-        let baseUrl = "http://localhost/www/projects/MixDOM/mix-dom-debug/dist/";
+        // Modify html, head and body.
+        // .. Modify <html/>.
+        doc.documentElement.setAttribute("lang", "en");
+        // .. Modify contents of <head/>.
+        const elDummy = doc.createElement("div");
+        elDummy.innerHTML = `
+<title>MixDOMDebug | Debugger for MixDOM library</title>
+<meta name='description' content="MixDOMDebug is an app for MixDOM library to debug a Host instance - shows the tree in details" />
+<meta name='keywords' content='mix-dom-debug, mixdomdebug, mixdomjs, mix-dom-js, mix, dom, debug, service' />
+<meta http-equiv='content-type' content='text/html' charset='utf-8' />
+<meta name='viewport' content='width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no' />
+<link href='https://fonts.googleapis.com/css?family=Abel' rel='stylesheet' />
+<link href="${cssUrl}?v=${cssVersion}" rel='stylesheet' type="text/css" />
+`.trim();
+        for (const elKid of elDummy.childNodes)
+            doc.head.appendChild(elKid);
+        // .. Modify <body/>.
+        doc.body.style.cssText = "background: #222; margin: 0; padding: 0; width: 100%; height: 100%; font-family: 'Abel', Arial, sans-serif; font-size: 16px;";
+        // .. Add fade in feature inside <body/>.
+        const fadeIn = useFade(doc);
 
-        if (baseUrl && !baseUrl.endsWith("/"))
-            baseUrl += "/";
-
-        const cssUrl = baseUrl + "css/";
-
-        w.document.documentElement.setAttribute("lang", "en");
-        w.document.head.innerHTML = `<title>MixDOMDebug | Debugger for MixDOM library</title><meta name='description' content="MixDOMDebug provides a debugging view for MixDOM library hosts and contexts" /><meta name='keywords' content='mix-dom-debug, mixdomdebug, mixdomjs, mix-dom-js, mix, dom, debug, service' /><meta http-equiv='content-type' content='text/html' charset='utf-8' /><meta name='viewport' content='width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no' /><meta name="google-site-verification" content="vuXdGK5mafeCIvjzenv2uDtR4S-nxq8crCSAW_Vgyg0" /><link href='https://fonts.googleapis.com/css?family=Abel' rel='stylesheet' /><link href="${cssUrl}prettify.css?v=${cssVersion}" rel='stylesheet' type="text/css" /><link href="${cssUrl}app.css?v=${cssVersion}" rel="stylesheet" type="text/css" /><link href="${cssUrl}common.css?v=${cssVersion}" rel='stylesheet' type="text/css" />`;
-        w.document.body.style.cssText = "background: #222; margin: 0; padding: 0; width: 100%; height: 100%; font-family: 'Abel', Arial, sans-serif; font-size: 16px;";
-        const divAppRoot = w.document.createElement("div");
-        divAppRoot.classList.add("ui");
-        divAppRoot.id = "app-root";
-        const divAppHide = w.document.createElement("div");
-        divAppHide.classList.add("ui");
-        divAppHide.id = "app-hide";
-        divAppHide.style.cssText = "position: absolute; inset: 0; z-index: 1; background: #222; opacity: 1; transition: opacity 150ms ease-in-out; pointer-events: none;";
-        w.document.body.appendChild(divAppRoot);
-        w.document.body.appendChild(divAppHide);
-
+        // Script loader.
         let nToLoad = 0;
         const ready = () => {
             // Not yet.
             if (--nToLoad)
                 return;
-            // Get.
-            const el: HTMLElement | null = w.document.querySelector("#app-hide");
-            if (!el)
-                return;
-            // w.document.body.removeAttribute("style");
-            w.document.body.style.removeProperty("background");
-            el.style.setProperty("opacity", "0");
-            window.setTimeout(() => {
-                el.remove();
-            }, 150);
-        
-            host && MixDOMDebug.mixDOMDebug && MixDOMDebug.mixDOMDebug.setHost(host, settings);
-        }; // );
+            // Finished.
+            fadeIn();
+            onLoad && onLoad();
+        };
 
-        // Load up dependencies.
+        // Load up optional dependency scripts.
+        // .. Set scripts.
         const scriptsSrcs: string[] = [
             // For syntax highlighting JS code and HTML markup.
             "https://cdn.jsdelivr.net/gh/google/code-prettify@master/loader/prettify.js",
             // For linebreaking and tabbifying JS code.
             "https://cdnjs.cloudflare.com/ajax/libs/js-beautify/1.15.1/beautify.min.js"
         ];
+        // .. Load up.
         scriptsSrcs.map(src => {
             nToLoad++;
             const script = w.document.createElement("script");
@@ -287,11 +328,37 @@ export class MixDOMDebug {
             return script;
         }).forEach(script => w.document.body.appendChild(script));
 
-        
-        // Initialize.
-        const elRoot = w.document.querySelector("#app-root");
-        MixDOMDebug.mixDOMDebug = new MixDOMDebug(elRoot);
+    }
+}
 
-        return MixDOMDebug.mixDOMDebug;
+
+// - Local helper - //
+
+/** Smooth fade feature. Returns fadeIn callback. */
+function useFade(doc: Document): () => void {
+    // Create.
+    const divAppRoot = doc.createElement("div");
+    divAppRoot.classList.add("ui");
+    divAppRoot.id = "app-root";
+    const divAppHide = doc.createElement("div");
+    divAppHide.classList.add("ui");
+    divAppHide.id = "app-hide";
+    divAppHide.style.cssText = "position: absolute; inset: 0; z-index: 1; background: #222; opacity: 1; transition: opacity 150ms ease-in-out; pointer-events: none;";
+    // Add to body.
+    doc.body.appendChild(divAppRoot);
+    doc.body.appendChild(divAppHide);
+    // Return fade-in callback.
+    return () => {
+        // Get hider element.
+        const el: HTMLElement | null = doc.querySelector("#app-hide");
+        if (!el)
+            return;
+        // Start fading in.
+        doc.body.style.removeProperty("background");
+        el.style.setProperty("opacity", "0");
+        // Remove hider element after fading completed.
+        (doc.defaultView || window).setTimeout(() => {
+            el.remove();
+        }, 150);
     }
 }
