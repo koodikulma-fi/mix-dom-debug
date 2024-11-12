@@ -1,16 +1,17 @@
 {
   "name": "mix-dom-debug",
-  "version": "0.3.6",
-  "description": "Debugging middleware for contexts from mix-dom",
+  "version": "1.0.1",
+  "description": "App to debug a MixDOM Host (for mix-dom rendering library)",
   "keywords": [
     "MixDOM",
     "mix-dom",
     "mix-dom-debug",
     "mix dom",
     "mix dom debug",
+    "host",
+    "debug",
     "mix",
     "dom",
-    "debug",
     "tools",
     "web",
     "js",
@@ -27,7 +28,6 @@
   "module": "./dist/mix-dom-debug.module.js",
   "main": "./dist/mix-dom-debug.js",
   "types": "./dist/mix-dom-debug.d.ts",
-  "script": "./dist/MixDOMDebug.js",
   "exports": {
     ".": {
       "types": "./dist/mix-dom-debug.d.ts",

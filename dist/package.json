@@ -1,6 +1,6 @@
 {
   "name": "mix-dom-debug",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "App to debug a MixDOM Host (for mix-dom rendering library)",
   "keywords": [
     "MixDOM",
@@ -28,7 +28,6 @@
   "module": "./mix-dom-debug.module.js",
   "main": "./mix-dom-debug.js",
   "types": "./mix-dom-debug.d.ts",
-  "script": "./MixDOMDebug.js",
   "exports": {
     ".": {
       "types": "./mix-dom-debug.d.ts",
@@ -43,14 +42,6 @@
       "require": "./launcher.js",
       "script": "./launcher.global.js"
     }
-  },
-  "files": [
-    "dist",
-    "src"
-  ],
-  "scripts": {
-    "tsc": "tsc -p tsconfig.json",
-    "build": "tsc && rollup -c rollup.config.js"
   },
   "dependencies": {
     "mix-dom": "^4.3.0",
