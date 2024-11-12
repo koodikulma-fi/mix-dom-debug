@@ -8,6 +8,8 @@ export interface HostDebugSettings {
 
 /** This type contains partial HostDebugSettings and a few initial settings only used on start up (rootElement and cssUrl). */
 export interface HostDebugSettingsInit extends Partial<HostDebugSettings> {
+    /** Callback to call after loading. Defaults to: `undefined`. */
+    onLoad?: ((debug: _MixDOMDebug | null, host: _Host | null, debugWindow: Window) => void) | null;
     /** App root element or selector. Note that when using the launcher to open in a new window, defaults to "#app-root" using the default MixDOMDebug.initApp creation process. */
     rootElement?: string | Element | null;
     /** Url for loading up the css file for the app. Defaults to: https://unpkg.com/mix-dom-debug/MixDOMDebug.css */
@@ -56,4 +58,9 @@ interface _MixDOMTreeNode {
 }
 interface _Host {
     groundedTree: _MixDOMTreeNode;
+}
+interface _MixDOMDebug {
+    setHost: (host: _Host, settings?: Partial<HostDebugSettings> | null, appState?: HostDebugAppStateUpdate | null) => void;
+    clearHost: () => void;
+    updateSettings: (settings?: Partial<HostDebugSettings> | null, appState?: HostDebugAppStateUpdate | null) => void;
 }

@@ -4,6 +4,8 @@ interface HostDebugSettings {
 }
 /** This type contains partial HostDebugSettings and a few initial settings only used on start up (rootElement and cssUrl). */
 interface HostDebugSettingsInit extends Partial<HostDebugSettings> {
+    /** Callback to call after loading. Defaults to: `undefined`. */
+    onLoad?: ((debug: _MixDOMDebug$1 | null, host: _Host$1 | null, debugWindow: Window) => void) | null;
     /** App root element or selector. Note that when using the launcher to open in a new window, defaults to "#app-root" using the default MixDOMDebug.initApp creation process. */
     rootElement?: string | Element | null;
     /** Url for loading up the css file for the app. Defaults to: https://unpkg.com/mix-dom-debug/MixDOMDebug.css */
@@ -45,6 +47,11 @@ interface _MixDOMTreeNode$1 {
 interface _Host$1 {
     groundedTree: _MixDOMTreeNode$1;
 }
+interface _MixDOMDebug$1 {
+    setHost: (host: _Host$1, settings?: Partial<HostDebugSettings> | null, appState?: HostDebugAppStateUpdate | null) => void;
+    clearHost: () => void;
+    updateSettings: (settings?: Partial<HostDebugSettings> | null, appState?: HostDebugAppStateUpdate | null) => void;
+}
 
 interface _MixDOMTreeNode {
     type: "dom" | "portal" | "boundary" | "pass" | "host" | "root" | "";
@@ -55,7 +62,7 @@ interface _Host {
 type _ClassType<T = {}, Args extends any[] = any[]> = new (...args: Args) => T;
 interface _MixDOMDebug {
     setHost: (host: _Host, settings?: Partial<HostDebugSettings> | null, appState?: HostDebugAppStateUpdate | null) => void;
-    clearHost: (host: _Host) => void;
+    clearHost: () => void;
     updateSettings: (settings?: Partial<HostDebugSettings> | null, appState?: HostDebugAppStateUpdate | null) => void;
 }
 interface _MixDOMDebug {
@@ -82,16 +89,6 @@ interface HostDebugSettingsLauncher extends HostDebugSettingsInit {
     windowFeatures?: string;
     /** Window target. Defaults to: `"_blank"`. */
     windowTarget?: string;
-    /** Callback to call after loading. Defaults to: `undefined`. */
-    onLoad?: ((debug: _MixDOMDebug | null, host: _Host | null, debugWindow: Window) => void) | null;
-}
-interface HostDebugWindowSettings {
-    /** Window features. Defaults to: `"toolbar=0,scrollbars=0,location=0,resizable=1"`. */
-    features?: string;
-    /** Window target. Defaults to: `"_blank"`. */
-    target?: string;
-    /** Callback to call after loading. Defaults to: `undefined`. */
-    onLoad?: ((debug: _MixDOMDebug | null, host: _Host | null, debugWindow: Window) => void) | null;
 }
 /** Helper to open up MixDOMDebug app in a new window.
  * @param host The host to debug. If not given, will not start up the debug.
@@ -126,4 +123,4 @@ declare function openMixDOMDebug(host?: _Host | null, debugSettings?: HostDebugS
     MixDOMDebug: _MixDOMDebugType;
 };
 
-export { HostDebugSettingsLauncher, HostDebugWindowSettings, openMixDOMDebug };
+export { HostDebugSettingsLauncher, openMixDOMDebug };

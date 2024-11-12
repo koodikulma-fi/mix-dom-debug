@@ -225,7 +225,7 @@ type TipSectionNames = "heading" | "code" | "props" | "state" | "contexts" |
                     <Aside>
 
                         <H3>Manually <Small>(without launcher script)</Small></H3>
-                        <p>The below code shows what the <Code code="openMixDOMDebug" /> function actually does.</p>
+                        <p>The below code shows <Small>(approximately)</Small> what the <Code code="openMixDOMDebug" /> function actually does.</p>
                         <Pre code={`
 function openMixDOMDebug(host, debugSettings, appState) {
 
@@ -235,7 +235,7 @@ function openMixDOMDebug(host, debugSettings, appState) {
         addRoot: true,
         useFadeIn: true,
         windowFeatures: "toolbar=0,scrollbars=0,location=0,resizable=1",
-        windowTarget: "_bank",
+        windowTarget: "_blank",
         scriptUrl: "https://unpkg.com/mix-dom-debug/MixDOMDebug.js",
         ...debugSettings
     };
@@ -255,8 +255,7 @@ function openMixDOMDebug(host, debugSettings, appState) {
 
         // Add load listener.
         script.addEventListener("load", () => {
-            const debug = w.MixDOMDebug.startDebug(host, coreSettings, appState);
-            onLoad && onLoad(debug, host || null, w);
+            w.MixDOMDebug.startDebug(host, coreSettings, appState);
         });
         
         // Add window close listener.

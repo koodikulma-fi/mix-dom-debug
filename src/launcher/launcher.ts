@@ -15,7 +15,7 @@ interface _Host {
 }
 interface _MixDOMDebug {
     setHost: (host: _Host, settings?: Partial<HostDebugSettings> | null, appState?: HostDebugAppStateUpdate | null) => void;
-    clearHost: (host: _Host) => void;
+    clearHost: () => void;
     updateSettings: (settings?: Partial<HostDebugSettings> | null, appState?: HostDebugAppStateUpdate | null) => void;
 }
 type _ClassType<T = {}, Args extends any[] = any[]> = new (...args: Args) => T;
@@ -49,17 +49,6 @@ export interface HostDebugSettingsLauncher extends HostDebugSettingsInit {
     windowFeatures?: string;
     /** Window target. Defaults to: `"_blank"`. */
     windowTarget?: string;
-    /** Callback to call after loading. Defaults to: `undefined`. */
-    onLoad?: ((debug: _MixDOMDebug | null, host: _Host | null, debugWindow: Window) => void) | null;
-}
-
-export interface HostDebugWindowSettings {
-    /** Window features. Defaults to: `"toolbar=0,scrollbars=0,location=0,resizable=1"`. */
-    features?: string;
-    /** Window target. Defaults to: `"_blank"`. */
-    target?: string;
-    /** Callback to call after loading. Defaults to: `undefined`. */
-    onLoad?: ((debug: _MixDOMDebug | null, host: _Host | null, debugWindow: Window) => void) | null;
 }
 
 
@@ -101,12 +90,12 @@ export function openMixDOMDebug(
 ) {
 
     // Parse.
-    let { scriptUrl, windowFeatures, windowTarget, onLoad, ...coreSettings } = {
+    let { scriptUrl, windowFeatures, windowTarget, ...coreSettings } = {
         console: window.console,
         addRoot: true,
         useFadeIn: true,
         windowFeatures: "toolbar=0,scrollbars=0,location=0,resizable=1",
-        windowTarget: "_bank",
+        windowTarget: "_blank",
         scriptUrl: "https://unpkg.com/mix-dom-debug/MixDOMDebug.js",
         ...debugSettings
     };
@@ -118,17 +107,67 @@ export function openMixDOMDebug(
 
     // Generate contents.
     if (w) {
+
+        // Style.
+        const doc = w.document;
+        doc.body.style.cssText = "margin: 0; padding: 0; position: relative;";
+        const elStyle = doc.createElement("style");
+        elStyle.innerHTML = `
+.loading-icon {
+    -webkit-animation: loading-spinner 2s linear infinite;
+    -moz-animation: loading-spinner 2s linear infinite;
+    animation: loading-spinner 2s linear infinite;
+}
+@-moz-keyframes loading-spinner { 
+    100% { -moz-transform: rotate(360deg); } 
+}
+@-webkit-keyframes loading-spinner { 
+    100% { -webkit-transform: rotate(360deg); } 
+}
+@keyframes loading-spinner { 
+    100% { 
+        -webkit-transform: rotate(360deg); 
+        transform:rotate(360deg); 
+    }
+}
+`;
+        doc.body.appendChild(elStyle);
+
+        // Loading animation.
+        const elLoadingIcon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        elLoadingIcon.classList.add("loading-icon");
+        elLoadingIcon.style.cssText = "width: 100px; height: 100px; color: #abd; position: absolute;";
+        elLoadingIcon.innerHTML = `
+<svg version="1.1" viewBox="0 0 768 768" xml:space="preserve">
+	<circle cx="587.6" cy="180.4" r="41.6" fill="currentColor" fill-opacity=".65" />
+	<circle cx="672" cy="384" r="44.8" fill="currentColor" fill-opacity=".7" />
+	<circle cx="587.6" cy="587.6" r="48" fill="currentColor" fill-opacity=".75" />
+	<circle cx="384" cy="672" r="51.2" fill="currentColor" fill-opacity=".8" />
+	<circle cx="180.4" cy="587.6" r="54.4" fill="currentColor" fill-opacity=".85" />
+	<circle cx="96" cy="384" r="57.6" fill="currentColor" fill-opacity=".9" />
+	<circle cx="180.4" cy="180.4" r="60.8" fill="currentColor" fill-opacity=".95" />
+	<circle cx="384" cy="96" r="64" fill="currentColor" fill-opacity="1" />
+</svg>`;
+        const elLoader = document.createElement("div");
+        elLoader.style.cssText = "display: flex; z-index: 10000; align-items: center; justify-content: center; position: absolute; background: #111; inset: 0; overflow: hidden; transition: opacity 300ms ease-in-out; opacity: 1;";
+        elLoader.appendChild(elLoadingIcon);
+        doc.body.appendChild(elLoader);
         
         // Prepare script.
-        const script = w.document.createElement("script");
+        const script = doc.createElement("script");
         script.setAttribute("type", "text/javascript");
         script.setAttribute("src", scriptUrl);
 
         // Add load listener.
         script.addEventListener("load", () => {
+            // Finish up.
+            elLoader.style.setProperty("opacity", "0");
+            setTimeout(() => {
+                elLoader.remove();
+                elStyle.remove();
+            }, 300);
             // We use `as any` as our typing is purposefully restricted.
-            const debug = w.MixDOMDebug.startDebug(host as any, coreSettings, appState);
-            onLoad && onLoad(debug, host || null, w);
+            w.MixDOMDebug.startDebug(host as any, coreSettings, appState);
         });
         
         // Add window close listener.
@@ -138,7 +177,7 @@ export function openMixDOMDebug(
         });
 
         // Add script.
-        w.document.body.appendChild(script);
+        doc.body.appendChild(script);
     }
 
     // Return window.

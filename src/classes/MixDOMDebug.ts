@@ -254,11 +254,12 @@ export class MixDOMDebug {
     public static startDebug = (host?: Host | null, settings?: HostDebugSettingsInit | null, appState?: HostDebugAppStateUpdate | null): MixDOMDebug => {
 
         // Parse.
-        const { rootElement, cssUrl, fontUrl, prettify, beautify, addRoot, useFadeIn, ...coreSettings } = settings || {};
+        const { rootElement, cssUrl, fontUrl, prettify, beautify, addRoot, useFadeIn, onLoad, ...coreSettings } = settings || {};
 
         // Already inited.
         if (MixDOMDebug.debug) {
             host ? MixDOMDebug.debug.setHost(host, coreSettings, appState) : MixDOMDebug.debug.updateSettings(coreSettings, appState);
+            onLoad && onLoad(MixDOMDebug.debug, host || null, window);
             return MixDOMDebug.debug;
         }
 
@@ -271,8 +272,11 @@ export class MixDOMDebug {
             addRoot,
             useFadeIn,
         }, () => {
-            // After has loaded all optional helper scripts, send a refresh.
-            MixDOMDebug.debug && MixDOMDebug.debug.refresh();
+            // Set host and settings.
+            if (MixDOMDebug.debug)
+                host ? MixDOMDebug.debug.setHost(host, coreSettings, appState) : MixDOMDebug.debug.updateSettings(coreSettings, appState);
+            // Call loader.
+            onLoad && onLoad(MixDOMDebug.debug, host || null, window);
         });
 
         // Start up debugging.
@@ -280,7 +284,6 @@ export class MixDOMDebug {
 
         // Create the app.
         MixDOMDebug.debug = new MixDOMDebug(elRoot);
-        host ? MixDOMDebug.debug.setHost(host, coreSettings, appState) : MixDOMDebug.debug.updateSettings(coreSettings, appState);
 
         // Return the instance.
         return MixDOMDebug.debug;
@@ -311,6 +314,23 @@ export class MixDOMDebug {
         // Modify html, head and body.
         // .. Modify <html/>.
         doc.documentElement.setAttribute("lang", "en");
+        // .. Modify <body/>.
+        if (settings.addRoot) {
+            // Get app root container.
+            let elAppRoot = doc.body.querySelector("#app-root");
+            // If didn't have, add.
+            if (!elAppRoot) {
+                // .. Set up background.
+                doc.body.style.cssText = "background: #222; margin: 0; padding: 0; width: 100%; height: 100%; font-family: 'Abel', Arial, sans-serif; font-size: 16px;";
+                // Add.
+                elAppRoot = doc.createElement("div");
+                elAppRoot.classList.add("ui");
+                elAppRoot.id = "app-root";
+                doc.body.appendChild(elAppRoot);
+            }
+        }
+        // .. Add fade in feature inside <body/>.
+        const fadeIn = settings.useFadeIn ? useFade(doc) : null;
         // .. Modify contents of <head/>.
         let elTitle = doc.head.querySelector("title");
         if (!elTitle) {
@@ -340,54 +360,49 @@ export class MixDOMDebug {
             elViewport.setAttribute("content", "width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no");
             doc.head.appendChild(elViewport);
         }
-        const elStyleLinks = [...doc.head.querySelectorAll("link[rel=stylesheet]")];
-        let elFont = elStyleLinks.find(link => link.getAttribute("href") === fontUrl);
-        if (!elFont) {
-            elFont = doc.createElement("link");
-            elFont.setAttribute("rel", "stylesheet");
-            elFont.setAttribute("type", "text/css");
-            elFont.setAttribute("href", fontUrl);
-            doc.head.appendChild(elFont);
-        }
-        const cssUrlVersion = `${cssUrl}?v=${cssVersion}`;
-        let elCss = elStyleLinks.find(link => link.getAttribute("href") === cssUrlVersion);
-        if (!elCss) {
-            elCss = doc.createElement("link");
-            elCss.setAttribute("rel", "stylesheet");
-            elCss.setAttribute("type", "text/css");
-            elCss.setAttribute("href", cssUrlVersion);
-            doc.head.appendChild(elCss);
-        }
-        // .. Modify <body/>.
-        if (settings.addRoot) {
-            // Get app root container.
-            let elAppRoot = doc.body.querySelector("#app-root");
-            // If didn't have, add.
-            if (!elAppRoot) {
-                // .. Set up background.
-                doc.body.style.cssText = "background: #222; margin: 0; padding: 0; width: 100%; height: 100%; font-family: 'Abel', Arial, sans-serif; font-size: 16px;";
-                // Add.
-                elAppRoot = doc.createElement("div");
-                elAppRoot.classList.add("ui");
-                elAppRoot.id = "app-root";
-                doc.body.appendChild(elAppRoot);
-            }
-        }
-        // .. Add fade in feature inside <body/>.
-        const fadeIn = settings.useFadeIn ? useFade(doc) : null;
-    
-        // Script loader.
+
+        // Loader.
         let nToLoad = 0;
-        const ready = () => {
+        const oneLoaded = () => {
             // Not yet.
-            if (--nToLoad)
+            if (--nToLoad > 0)
                 return;
             // Finished.
             fadeIn && fadeIn();
             onLoad && onLoad();
         };
 
-        // Load up optional dependency scripts.
+        // Prepare styles.
+        let checkCss = false;
+        const addToHead: HTMLLinkElement[] = [];
+        const elStyleLinks = [...doc.head.querySelectorAll("link[rel=stylesheet]")];
+        const cssUrlVersion = `${cssUrl}?v=${cssVersion}`;
+        let elCss = elStyleLinks.find(link => link.getAttribute("href") === cssUrlVersion) as HTMLLinkElement | null;
+        if (!elCss) {
+            elCss = doc.createElement("link");
+            elCss.setAttribute("rel", "stylesheet");
+            elCss.setAttribute("type", "text/css");
+            elCss.setAttribute("href", cssUrlVersion);
+            addToHead.push(elCss);
+            nToLoad++;
+            checkCss = true;
+        }
+        let elFont = elStyleLinks.find(link => link.getAttribute("href") === fontUrl) as HTMLLinkElement | null;
+        if (!elFont) {
+            elFont = doc.createElement("link");
+            elFont.setAttribute("rel", "stylesheet");
+            elFont.setAttribute("type", "text/css");
+            elFont.setAttribute("href", fontUrl);
+            addToHead.push(elFont);
+            nToLoad++;
+            const fontLoaded = () => {
+                document.fonts.removeEventListener("loadingdone", fontLoaded);
+                oneLoaded();
+            }
+            document.fonts.addEventListener("loadingdone", fontLoaded);
+        }
+
+        // Scripts.
         // .. Set scripts.
         const scriptsSrcs: string[] = [
             // For syntax highlighting JS code and HTML markup.
@@ -397,18 +412,47 @@ export class MixDOMDebug {
         ].filter(s => s);
         // .. Load up.
         const existingScriptSrcs = [...doc.body.querySelectorAll("script")].map(s => s.getAttribute("src"));
-        if (!scriptsSrcs.map(src => {
-            nToLoad++;
+        const addToBody = scriptsSrcs.map(src => {
             if (existingScriptSrcs.includes(src))
                 return null;
             const script = doc.createElement("script");
             script.setAttribute("type", "text/javascript");
             script.setAttribute("src", src);
-            script.onload = ready;
+            script.onload = oneLoaded;
+            nToLoad++;
             return script;
-        }).filter(s => s).map(script => doc.body.appendChild(script!))[0])
-            // If had none, already ready.
-            ready();
+        }).filter(s => s) as HTMLScriptElement[];
+
+        // Nothing to load.
+        if (!addToHead[0] && !addToBody[0])
+            oneLoaded();
+        // Start loading.
+        else {
+            // Add styles.
+            for (const el of addToHead)
+                doc.head.appendChild(el);
+            // Add scripts.
+            for (const el of addToBody)
+                doc.body.appendChild(el);
+            // Style load checker.
+            if (checkCss) {
+                // Create a dummy.
+                const elDummy = document.createElement("div");
+                elDummy.style.cssText = "display: none;";
+                elDummy.classList.add("style-disabled");
+                doc.body.appendChild(elDummy);
+                // Check every 100ms.
+                const styleInterval = window.setInterval(() => {
+                    // Test.
+                    if (window.getComputedStyle(elDummy).opacity === "1")
+                        return;
+                    // Finished.
+                    elDummy.remove();
+                    window.clearInterval(styleInterval);
+                    oneLoaded();
+                }, 100);
+            }
+        }
     }
 }
 

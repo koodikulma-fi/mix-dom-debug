@@ -130,7 +130,7 @@ Using the launcher is of course optional: you can just open up the debugger manu
 
 ### Manually (without launcher script)
 
-The below code shows what the `openMixDOMDebug` function actually does.
+The below code shows (approximately) what the `openMixDOMDebug` function actually does.
 
 ```js
 function openMixDOMDebug(host, debugSettings, appState) {
@@ -141,7 +141,7 @@ function openMixDOMDebug(host, debugSettings, appState) {
         addRoot: true,
         useFadeIn: true,
         windowFeatures: "toolbar=0,scrollbars=0,location=0,resizable=1",
-        windowTarget: "_bank",
+        windowTarget: "_blank",
         scriptUrl: "https://unpkg.com/mix-dom-debug/MixDOMDebug.js",
         ...debugSettings
     };
@@ -161,8 +161,7 @@ function openMixDOMDebug(host, debugSettings, appState) {
 
         // Add load listener.
         script.addEventListener("load", () => {
-            const debug = w.MixDOMDebug.startDebug(host, coreSettings, appState);
-            onLoad && onLoad(debug, host || null, w);
+            w.MixDOMDebug.startDebug(host, coreSettings, appState);
         });
         
         // Add window close listener.
