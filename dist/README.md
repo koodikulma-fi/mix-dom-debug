@@ -56,7 +56,7 @@ You can also install the [NPM package](https://www.npmjs.com/package/mix-dom-deb
 1. First, install: `mix-dom-debug` from the terminal (as a dev. dependency)
 
    ```
-   npm -i mix-dom-debug --save-dev
+   npm install mix-dom-debug --save-dev
    ```
 
 2. Then import (or require) the launcher function:

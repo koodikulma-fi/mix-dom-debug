@@ -168,7 +168,7 @@ document.body.appendChild(script);
                         <H3>Module usage <Small>(import/require)</Small></H3>
                         <p>You can also install the <A href="https://www.npmjs.com/package/mix-dom-debug">NPM package</A> and import the launcher as a sub module.</p>
                         <ol class="style-ui-list">
-                            <li><Small italic={true} wide={true}>1. </Small>First, install <Code code="mix-dom-debug"/> from the terminal <Small>(as a dev. dependency)</Small>: <Pre code={escapeHTML(`npm -i mix-dom-debug --save-dev`)} /></li>
+                            <li><Small italic={true} wide={true}>1. </Small>First, install <Code code="mix-dom-debug"/> from the terminal <Small>(as a dev. dependency)</Small>: <Pre code={escapeHTML(`npm install mix-dom-debug --save-dev`)} /></li>
                             <li><Small italic={true} wide={true}>2. </Small>Then import <Small>(or require)</Small> the launcher function: <Pre code={`import { openMixDOMDebug } from "mix-dom-debug";`} /></li>
                             <li><Small italic={true} wide={true}>3. </Small>And finally hook it up in your code <Small>(with typing support)</Small>: <Pre code={`openMixDOMDebug(host, debugSettings, appState);`} /></li>
                         </ol>
