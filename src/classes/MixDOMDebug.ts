@@ -122,6 +122,8 @@ export class MixDOMDebug {
             consoleWarn(settings, "MixDOMDebug: Tried to debug self.", host);
             return;
         }
+        // Update settings.
+        this.updateSettings(debugSettings, appState);
         // Remove existing.
         const already = this.contexts.debug.data.host;
         // Changed.
@@ -132,11 +134,8 @@ export class MixDOMDebug {
             // Hook up.
             this.setHostListeners(host);
         }
-        else
-            this.refresh();
         // Set context data.
         this.contexts.debug.setData({ host, iUpdate: 0 });
-        this.updateSettings(debugSettings, appState);
     }
 
     public clearHost(): void {
