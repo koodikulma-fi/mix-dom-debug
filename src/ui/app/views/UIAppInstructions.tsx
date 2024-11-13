@@ -87,8 +87,8 @@ export const UIAppInstructions: ComponentFunc<UIAppInstructionsInfo> = (_props, 
         const iName = sections.indexOf(name);
         // Toggle.
         if (solo) {
-            const allSections = ["instructions", "set-host", "using-launcher", "manual-launching", "render-app"] satisfies SectionNames[];
-            sections = sections.length === allSections.length - 1 && iName !== -1 ? [] : allSections.filter(n => n !== name);
+            const allSections = ["instructions", "set-host", "using-launcher", "manual-launching", "render-app", "docs-example"] satisfies SectionNames[];
+            sections = sections.length === allSections.length - 1 && iName === -1 ? [] : allSections.filter(n => n !== name);
         }
         else
             iName === -1 ? sections.push(name) : sections.splice(iName, 1);
@@ -124,8 +124,9 @@ export const UIAppInstructions: ComponentFunc<UIAppInstructionsInfo> = (_props, 
                     <Aside>
                         <H3>Changing the host</H3>
                         <p>To start debugging a Host instance in this window <Small>(<Code code="debugWindow" />)</Small> from another window, simply call: <Pre code="debugWindow.MixDOMDebug.startDebug( host ); // Feed in the `host` to debug."/></p>
-                        <p>Or you can use the <Code code="setHost(host, settings, appState)"/> and <Code code="clearHost()"/> methods directly: <Pre code="debugWindow.MixDOMDebug.debug.setHost( host );"/></p>
-                        <p>Note that there's only 1 <Small>(or 0)</Small> instance at a time, accessible at: <Code code="debugWindow.MixDOMDebug.debug"/></p>
+                        <p>You can then use the <Code code="setHost(host, settings, appState)"/> and <Code code="clearHost()"/> methods directly: <Pre code="debugWindow.MixDOMDebug.debug.setHost( host );"/></p>
+                        <p>Not using <Code code="startDebug"/> you can init the app with the static <Code code="initApp(settings?, onLoad?)"/> method. <Pre code="debugWindow.MixDOMDebug.initApp();" /></p>
+                        <p>Note that <Code code="startDebug"/> / <Code code="stopDebug"/> sets the global instance: <Code code="debugWindow.MixDOMDebug.debug"/></p>
                     </Aside>
 
                 </SectionHelper>
@@ -133,11 +134,21 @@ export const UIAppInstructions: ComponentFunc<UIAppInstructionsInfo> = (_props, 
                     <p class="style-text-center">Including the launcher script adds one function to the global window: <Code code="openMixDOMDebug"/></p>
 
                     <Aside>
-                        <H3>Global usage</H3>
-                        <p>The easiest way to use is to add the launcher script to the document, and then use it to open MixDOMDebug for the hosts you want to debug.</p>
+                        <H3>Module usage <Small>(import/require)</Small></H3>
+                        <p>You can install the <A href="https://www.npmjs.com/package/mix-dom-debug">NPM package</A> and import the launcher as a sub module.</p>
                         <ol class="style-ui-list">
-                            <li><Small italic={true} wide={true}>1. </Small>So first, include the launcher script <Small>(inside <Code code={escapeHTML("<body>")}/>)</Small>: <Pre code={escapeHTML(`<script type="text/javacript" src="https://unpkg.com/mix-dom-debug/launcher.global.js" />`)} /></li>
-                            <li><Small italic={true} wide={true}>2. </Small>And then use it to debug a Host instance: <Pre code={`const debugWindow = window.openMixDOMDebug( host ); `.trim()} /></li>
+                            <li><Small italic={true} wide={true}>1. </Small>First, install <Code code="mix-dom-debug"/> from the terminal <Small>(often as a dev. dependency)</Small>: <Pre code={escapeHTML(`npm install mix-dom-debug --save-dev`)} /></li>
+                            <li><Small italic={true} wide={true}>2. </Small>Then import <Small>(or require)</Small> the launcher function: <Pre code={`import { openMixDOMDebug } from "mix-dom-debug/launcher";`} /></li>
+                            <li><Small italic={true} wide={true}>3. </Small>And finally hook it up in your code <Small>(with typing support)</Small>: <Pre code={`openMixDOMDebug(host, debugSettings, appState);`} /></li>
+                        </ol>
+                    </Aside>
+
+                    <Aside>
+                        <H3>Global usage</H3>
+                        <p>You can add the launcher script to the document, and then use it to open MixDOMDebug for the hosts you want to debug.</p>
+                        <ol class="style-ui-list">
+                            <li><Small italic={true} wide={true}>1. </Small>First, include the launcher script <Small>(inside <Code code={escapeHTML("<body>")}/>)</Small>: <Pre code={escapeHTML(`<script type="text/javacript" src="https://unpkg.com/mix-dom-debug/launcher.global.js" />`)} /></li>
+                            <li><Small italic={true} wide={true}>2. </Small>Then use it to debug a Host instance: <Pre code={`const debugWindow = window.openMixDOMDebug( host ); `.trim()} /></li>
                             <li><Small italic={true} wide={true}>+ </Small>Use the returned window to access the static class <Small>(after it's loaded)</Small>: <Code code={`debugWindow.MixDOMDebug`} /></li>
                         </ol>
                     </Aside>
@@ -162,16 +173,6 @@ document.body.appendChild(script);
 `.trim()} />
 
                         <p>If you have the <Code code="mix-dom-debug"/> package downloaded / installed locally, you can of course point to its <Code code='"launcher.global.js"'/>.</p>
-                    </Aside>
-
-                    <Aside>
-                        <H3>Module usage <Small>(import/require)</Small></H3>
-                        <p>You can also install the <A href="https://www.npmjs.com/package/mix-dom-debug">NPM package</A> and import the launcher as a sub module.</p>
-                        <ol class="style-ui-list">
-                            <li><Small italic={true} wide={true}>1. </Small>First, install <Code code="mix-dom-debug"/> from the terminal <Small>(as a dev. dependency)</Small>: <Pre code={escapeHTML(`npm install mix-dom-debug --save-dev`)} /></li>
-                            <li><Small italic={true} wide={true}>2. </Small>Then import <Small>(or require)</Small> the launcher function: <Pre code={`import { openMixDOMDebug } from "mix-dom-debug";`} /></li>
-                            <li><Small italic={true} wide={true}>3. </Small>And finally hook it up in your code <Small>(with typing support)</Small>: <Pre code={`openMixDOMDebug(host, debugSettings, appState);`} /></li>
-                        </ol>
                     </Aside>
 
                     <Aside>
@@ -232,7 +233,7 @@ type TipSectionNames = "heading" | "code" | "props" | "state" | "contexts" |
 function openMixDOMDebug(host, debugSettings, appState) {
 
     // Parse.
-    let { scriptUrl: sUrl, windowFeatures, windowTarget, onLoad, ...coreSettings } = {
+    const { scriptUrl: sUrl, windowFeatures, windowTarget, onLoad, ...coreSettings } = {
         console: window.console,
         addRoot: true,
         useFadeIn: true,
@@ -282,7 +283,7 @@ function openMixDOMDebug(host, debugSettings, appState) {
                 <SectionHelper title="Render the app manually" name="render-app">
                     <p class="style-text-center">Finally, you can include the whole debugger app with the <A href="https://www.npmjs.com/package/mix-dom-debug" target="_blank">NPM package</A>.</p>
                     <Aside>
-                        <H3>Import the app root</H3>
+                        <H3>Import the debugger</H3>
                         <p>To render the app in a custom location within your app <Small>(instead of a new window)</Small>, import the <Code code="MixDOMDebug"/> class, instantiate it and insert its own host <Code code="debug.ownHost"/> inside your app.</p>
                         <p>Note that it's okay to insert the debugger host inside the host you want to debug - it will be cut out from debugging itself. The below JSX-example demonstrates the principles.</p>
                         <Pre code={escapeHTML(`
@@ -315,8 +316,8 @@ const devHost = new Host(<UIDevApp/>);
                     </Aside>
                 </SectionHelper>
 
-                <SectionHelper title="See docs (mixdomjs.org) for more" name="docs-example">
-                    <p class="style-text-center">To see a real time example of debugging, see the <A href="https://mixdomjs.org">mix-dom docs</A>, and open the <b>Debug</b> link in the top bar.</p>
+                <SectionHelper title="See example at docs (mixdomjs.org)" name="docs-example">
+                    <p class="style-text-center">To see a use case example, navigate to the <A href="https://mixdomjs.org">mix-dom docs</A>, and open the <b>Debug</b> link in the top bar.</p>
                 </SectionHelper>
 
             </Article>

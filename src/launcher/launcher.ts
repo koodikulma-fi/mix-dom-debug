@@ -90,7 +90,7 @@ export function openMixDOMDebug(
 ) {
 
     // Parse.
-    let { scriptUrl, windowFeatures, windowTarget, ...coreSettings } = {
+    const { scriptUrl, windowFeatures, windowTarget, ...coreSettings } = {
         console: window.console,
         addRoot: true,
         useFadeIn: true,

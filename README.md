@@ -1,4 +1,11 @@
-# MixDOMDebug - instructions
+# mix-dom-debug (instructions)
+
+You are viewing the instructions for setting up `mix-dom-debug` - an app to debug the grounded tree of a `mix-dom` rendered app. There are a few ways to set up the debugger:
+1. [Use the launcher script](#using-the-launcher-script)
+2. [Manual launching](#manual-launching)
+3. [Set host directly](#set-host-directly)
+4. [Render the app manually](#render-the-app-manually)
+- [See example at docs](#see-example-at-docs-mixdomjsorg)
 
 ---
 
@@ -8,11 +15,33 @@ The easiest way to launch the debugger app is to include the tiny launcher scrip
 
 Including the launcher script simply adds one function to the global window: `openMixDOMDebug`
 
+### Module usage (import/require)
+
+You can install the [NPM package](https://www.npmjs.com/package/mix-dom-debug) and import the launcher as a sub module.
+
+1. First, install: `mix-dom-debug` from the terminal (often as a dev. dependency)
+
+   ```
+   npm install mix-dom-debug --save-dev
+   ```
+
+2. Then import (or require) the launcher function:
+
+   ```js
+   import { openMixDOMDebug } from "mix-dom-debug/launcher";
+   ```
+
+3. And finally hook it up in your code (with typing support):
+
+   ```js
+   openMixDOMDebug(host, debugSettings, appState);
+   ```
+
 ### Global usage
 
-You can just add the launcher script to the document, and then use it to open a debugger for the host you want to debug.
+You can add the launcher script to the document, and then use it to open a debugger for the host you want to debug.
 
-1. So first, include the launcher script (inside `<body>`):
+1. First, include the launcher script (inside `<body>`):
 
    ```html
    <script type="text/javacript" src="https://unpkg.com/mix-dom-debug/launcher.global.js" />
@@ -20,7 +49,7 @@ You can just add the launcher script to the document, and then use it to open a 
 
    
 
-2. And then use it to debug a Host instance:
+2. Then use it to debug a Host instance:
 
    ```js
    const debugWindow = window.openMixDOMDebug( host );
@@ -48,28 +77,6 @@ document.body.appendChild(script);
 ```
 
 If you have the `mix-dom-debug` package downloaded / installed locally, you can of course point to its `"launcher.global.js"`.
-
-### Module usage (import/require)
-
-You can also install the [NPM package](https://www.npmjs.com/package/mix-dom-debug) and import the launcher as a sub module.
-
-1. First, install: `mix-dom-debug` from the terminal (as a dev. dependency)
-
-   ```
-   npm install mix-dom-debug --save-dev
-   ```
-
-2. Then import (or require) the launcher function:
-
-   ```js
-   import { openMixDOMDebug } from "mix-dom-debug";
-   ```
-
-3. And finally hook it up in your code (with typing support):
-
-   ```js
-   openMixDOMDebug(host, debugSettings, appState);
-   ```
 
 ### About launcher arguments
 
@@ -136,7 +143,7 @@ The below code shows (approximately) what the `openMixDOMDebug` function actuall
 function openMixDOMDebug(host, debugSettings, appState) {
 
     // Parse.
-    let { scriptUrl, windowFeatures, windowTarget, onLoad, ...coreSettings } = {
+    const { scriptUrl, windowFeatures, windowTarget, onLoad, ...coreSettings } = {
         console: window.console,
         addRoot: true,
         useFadeIn: true,
@@ -180,6 +187,8 @@ function openMixDOMDebug(host, debugSettings, appState) {
 }
 ```
 
+---
+
 ## Set host directly
 
 If you have already launched the debug app with the launcher, the window contains a globally declared `MixDOMDebug` class.
@@ -192,19 +201,27 @@ To start debugging a Host instance in this window (`debugWindow`) from another w
 debugWindow.MixDOMDebug.startDebug( host ); // Feed in the `host` to debug.
 ```
 
-Or you can use the `setHost(host, settings, appState)` and `clearHost()` methods directly:
+You can then use the `setHost(host, settings, appState)` and `clearHost()` methods directly:
 
 ```js
 debugWindow.MixDOMDebug.debug.setHost( host );
 ```
 
-Note that there's only 1 (or 0) instance at a time, accessible at: `debugWindow.MixDOMDebug.debug`
+Not using `startDebug` you can init the app with the static `initApp(settings?, onLoad?)` method.
+
+```js
+debugWindow.MixDOMDebug.initApp();
+```
+
+Note that `startDebug` / `stopDebug` sets the global instance: `debugWindow.MixDOMDebug.debug`
+
+---
 
 ## Render the app manually
 
 Finally, you can include the whole debugger app with the [NPM package](https://www.npmjs.com/package/mix-dom-debug).
 
-### Import the app root
+### Import the debugger
 
 To render the app in a custom location within your app (instead of a new window), import the `MixDOMDebug` class, instantiate it and insert its own host `debug.ownHost` inside your app.
 
@@ -236,5 +253,12 @@ const devHost = new Host(<UIDevApp/>);
 // debug.updateSettings(settings, appState);    // Update settings.
 // debug.clearHost(host);                       // Stop debugging.
 ```
-## See docs (mixdomjs.org) for more
-To see a real time example of debugging, see the [mix-dom docs](https://mixdomjs.org) and open the **Debug** link in the top bar.
+
+---
+
+## See example at docs (mixdomjs.org)
+To see a use case example, navigate to the [mix-dom docs](https://mixdomjs.org), and open the **Debug** link in the top bar.
+
+---
+
+[Back to top](#mix-dom-debug-instructions)
